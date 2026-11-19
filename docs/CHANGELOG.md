@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.67.0] - 2026-11-19
+### Changed
+- Migrated `backend/ai_service.py` to official `google-genai` SDK (`genai.Client(api_key=...)`, `client.aio.models.generate_content`) defaulting to `gemini-3.5-flash` with `response_schema=GameConfig`, `95s` timeout & automatic live failover across `gemini-3.8-flash`/`3.7`/`3.6`, supporting `AQ.*` Express/AI Studio keys cleanly with `load_dotenv()` initialized first in `backend/main.py`.
+- Added `google-genai>=1.0.0` to `backend/requirements.txt` and updated `backend/schemas.py` default `model_id` (`gemini-3.8-flash`) + `docs/ARCHITECTURE.md`.
+
 ## [0.66.0] - 2026-11-19
 ### Fixed
 - Removed silent keyword-routing fallback (`build_fallback_game`) from `backend/ai_service.py`: missing/empty `GEMINI_API_KEY` now raises explicit `HTTP 503` (surfacing the exact message in the Lobby prompt bar), and invalid Gemini JSON/empty JSX responses raise explicit `HTTP 502` instead of silently serving canned presets.

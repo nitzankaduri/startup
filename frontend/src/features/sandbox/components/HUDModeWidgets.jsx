@@ -132,7 +132,7 @@ export function SynthesisStatusPill({ currentGame }) {
 
   return (
     <span
-      title={isLive ? `Live synthesized via ${cfg.model_id || 'gemini-2.5-flash'}` : `Fallback: ${reason}`}
+      title={isLive ? `Live synthesized via ${cfg.model_id || 'gemini-3.5-flash'}` : `Fallback: ${reason}`}
       className={`inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-medium border max-w-[190px] truncate ${
         isLive
           ? 'bg-[#EAF4EA] dark:bg-[#13261A] text-[#2E7D32] dark:text-[#6EE7B7] border-[#B7DFB9] dark:border-[#1E462C]'

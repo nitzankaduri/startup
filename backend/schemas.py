@@ -68,7 +68,7 @@ class GameConfig(BaseModel):
     architecture_plan: Optional[ArchitecturePlan] = None
     code: Optional[str] = None
     generation_source: str = "ai_live"
-    model_id: str = "gemini-2.5-flash"
+    model_id: str = "gemini-3.5-flash"
     generation_error: Optional[str] = None
     rules: GameRules = Field(default_factory=GameRules)
     environment: EnvironmentConfig = Field(default_factory=EnvironmentConfig)

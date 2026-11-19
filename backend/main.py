@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+load_dotenv()
+
 from ai_service import fix_generated_code, generate_game_config, remix_game_config
 from database import (
     add_game_score,
@@ -26,8 +28,6 @@ from schemas import (
     ScoreSubmitRequest,
     ThumbnailRequest,
 )
-
-load_dotenv()
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 app = FastAPI(title="Spawn.gg API", version="0.1.0")
