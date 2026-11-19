@@ -1,0 +1,106 @@
+import { useCallback, useEffect, useState } from 'react';
+import { QuickEditDrawer } from './features/editor/QuickEditDrawer';
+import { LobbyPage } from './features/lobby/LobbyPage';
+import { GameHUD } from './features/sandbox/components/GameHUD';
+import { SandboxViewport } from './features/sandbox/components/SandboxViewport';
+import { SpeedEffects } from './features/sandbox/components/SpeedEffects';
+import { TouchControls } from './features/sandbox/components/TouchControls';
+import { useGameStore } from './features/sandbox/store/useGameStore';
+import { fetchGameById, fetchGames, generateGame, recordGamePlay } from './shared/api/gameApi';
+import { useTheme } from './shared/hooks/useTheme';
+
+const getPlayIdFromPath = () => {
+  const match = window.location.pathname.match(/^\/play\/([^/]+)$/);
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+export function App() {
+  const { theme, toggleTheme } = useTheme();
+  const currentGame = useGameStore((s) => s.currentGame);
+  const isLoading = useGameStore((s) => s.isLoading);
+  const setGame = useGameStore((s) => s.setGame);
+  const setLoading = useGameStore((s) => s.setLoading);
+  const setEditorOpen = useGameStore((s) => s.setEditorOpen);
+
+  const [games, setGames] = useState([]);
+  const [isFetchingGames, setIsFetchingGames] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadRecentGames = useCallback(async () => {
+    setIsFetchingGames(true);
+    try { setGames(await fetchGames()); } catch { setGames([]); } finally { setIsFetchingGames(false); }
+  }, []);
+
+  const openGame = useCallback((game, pushUrl = true) => {
+    setError('');
+    setGame(game);
+    if (game?.id) recordGamePlay(game.id).catch(() => {});
+    if (pushUrl && game?.id) window.history.pushState({}, '', `/play/${game.id}`);
+  }, [setGame]);
+
+  const handleBackToLobby = useCallback(() => {
+    setError('');
+    setEditorOpen(false); setGame(null);
+    window.history.pushState({}, '', '/');
+    loadRecentGames();
+  }, [setEditorOpen, setGame, loadRecentGames]);
+
+  useEffect(() => {
+    const syncFromUrl = async () => {
+      const playId = getPlayIdFromPath();
+      if (playId) {
+        setLoading(true);
+        try {
+          const fetched = await fetchGameById(playId);
+          if (!fetched?.game_config) throw new Error('Invalid game');
+          openGame(fetched, false);
+        } catch {
+          window.history.replaceState({}, '', '/');
+          setGame(null);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setGame(null);
+      }
+      loadRecentGames();
+    };
+    syncFromUrl();
+    window.addEventListener('popstate', syncFromUrl);
+    return () => window.removeEventListener('popstate', syncFromUrl);
+  }, [loadRecentGames, openGame, setGame, setLoading]);
+
+  const handleGenerate = async (prompt) => {
+    setError(''); setLoading(true);
+    try { openGame(await generateGame(prompt), true); } catch (err) { setError(err.message || 'Failed to generate world.'); } finally { setLoading(false); }
+  };
+
+  if (currentGame) {
+    return (
+      <div className="relative w-screen h-screen bg-[#E8DFD5] overflow-hidden">
+        <SandboxViewport onBackToLobby={handleBackToLobby} />
+        <SpeedEffects />
+        <GameHUD onBackToLobby={handleBackToLobby} />
+        <TouchControls />
+        <QuickEditDrawer onRemixed={(remixed) => openGame(remixed, true)} />
+      </div>
+    );
+  }
+
+  return (
+    <LobbyPage
+      theme={theme}
+      toggleTheme={toggleTheme}
+      games={games}
+      isFetchingGames={isFetchingGames}
+      isLoading={isLoading}
+      error={error}
+      onClearError={() => setError('')}
+      onGenerate={handleGenerate}
+      onPlayGame={(game) => openGame(game, true)}
+      onRemixGame={(game) => { openGame(game, true); setEditorOpen(true); }}
+    />
+  );
+}
+
+export default App;
