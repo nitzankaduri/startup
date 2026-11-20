@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { AlertCircle, ArrowRight, Loader2, Plus, Sparkles, X } from 'lucide-react';
+import { BuildProgressPill } from './BuildProgressPill';
 import { QUICK_CHIPS, useTypingPlaceholder } from './lobbyHelpers';
 
-export function PromptBar({ prompt, setPrompt, onGenerate, isLoading, error, onClearError, inputRef }) {
+export function PromptBar({ prompt, setPrompt, onGenerate, isLoading, buildStage, error, onClearError, inputRef }) {
   const [needsText, setNeedsText] = useState(false);
   const animatedPlaceholder = useTypingPlaceholder(!prompt && !isLoading);
 
@@ -67,7 +68,7 @@ export function PromptBar({ prompt, setPrompt, onGenerate, isLoading, error, onC
             >
               <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
             </button>
-            {isLoading && <span className="text-xs font-medium text-[#D96B27] animate-pulse">Building 3D world...</span>}
+            {isLoading && <span className="text-xs font-medium text-[#D96B27]">Architecting 3D world...</span>}
             {!isLoading && needsText && <span className="text-xs font-medium text-[#D96B27]">Describe a world idea or click +</span>}
           </div>
 
@@ -93,6 +94,8 @@ export function PromptBar({ prompt, setPrompt, onGenerate, isLoading, error, onC
             </button>
           </div>
         </div>
+
+        {isLoading && <BuildProgressPill buildStage={buildStage} />}
       </form>
 
       {error && (

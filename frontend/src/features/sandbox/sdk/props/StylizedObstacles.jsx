@@ -1,82 +1,109 @@
+import { useMemo, useRef } from 'react';
 import { RoundedBox } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import { createChevronBarrierTexture, createStarCoinTexture } from './propTextures';
 
-export function LowHurdleProp({ w = 2.6, h = 1.0, d = 0.7 }) {
+/** Subway-Surfers signature red/white chevron sawhorse hurdle with twin reflector lamps & steel A-frame legs. */
+export function LowHurdleProp({ w = 2.6, h = 1.08, d = 0.72, position = [0, 0, 0], rotation = [0, 0, 0], centered = false }) {
+  const chevron = useMemo(() => createChevronBarrierTexture(), []);
   return (
-    <group>
-      {[-w * 0.38, w * 0.38].map((x) => (
-        <group key={x} position={[x, -0.05, 0]}>
-          <mesh rotation={[0.22, 0, 0]} position={[0, 0, -0.1]} castShadow>
-            <boxGeometry args={[0.12, h * 0.95, 0.12]} />
-            <meshStandardMaterial color="#2E2C28" roughness={0.55} metalness={0.45} />
-          </mesh>
-          <mesh rotation={[-0.22, 0, 0]} position={[0, 0, 0.1]} castShadow>
-            <boxGeometry args={[0.12, h * 0.95, 0.12]} />
-            <meshStandardMaterial color="#2E2C28" roughness={0.55} metalness={0.45} />
-          </mesh>
-        </group>
-      ))}
-      <RoundedBox args={[w, h * 0.42, d * 0.55]} radius={0.05} position={[0, h * 0.24, 0]} castShadow receiveShadow>
-        <meshStandardMaterial color="#F6F4EF" roughness={0.6} />
-      </RoundedBox>
-      {[-0.32, 0, 0.32].map((xOff, i) => (
-        <RoundedBox key={i} args={[w * 0.2, h * 0.44, d * 0.6]} radius={0.03} position={[xOff * w, h * 0.24, 0]}>
-          <meshStandardMaterial color="#9A3412" roughness={0.58} />
+    <group position={position} rotation={rotation}>
+      <group position={[0, centered ? 0 : h * 0.5, 0]}>
+        {[-w * 0.4, w * 0.4].map((x) => (
+          <group key={x} position={[x, -0.05, 0]}>
+            <mesh rotation={[0.24, 0, 0]} position={[0, 0, -0.11]} castShadow>
+              <boxGeometry args={[0.13, h * 0.96, 0.13]} />
+              <meshStandardMaterial color="#2C3038" roughness={0.48} metalness={0.55} />
+            </mesh>
+            <mesh rotation={[-0.24, 0, 0]} position={[0, 0, 0.11]} castShadow>
+              <boxGeometry args={[0.13, h * 0.96, 0.13]} />
+              <meshStandardMaterial color="#2C3038" roughness={0.48} metalness={0.55} />
+            </mesh>
+          </group>
+        ))}
+        {/* Main chevron caution board */}
+        <RoundedBox args={[w, h * 0.52, d * 0.46]} radius={0.05} position={[0, h * 0.16, 0]} castShadow receiveShadow>
+          <meshStandardMaterial {...chevron} />
         </RoundedBox>
-      ))}
-      {[-w * 0.45, w * 0.45].map((x) => (
-        <RoundedBox key={x} args={[0.12, 0.16, d * 0.64]} radius={0.02} position={[x, h * 0.24, 0]}>
-          <meshStandardMaterial color="#E5B869" roughness={0.3} metalness={0.5} />
+        {/* Top vertical red/white crown bar + twin side reflector lamps */}
+        <RoundedBox args={[w * 1.02, h * 0.24, d * 0.5]} radius={0.04} position={[0, h * 0.48, 0]} castShadow>
+          <meshStandardMaterial {...chevron} />
         </RoundedBox>
-      ))}
+        {[-w * 0.46, w * 0.46].map((x) => (
+          <group key={x} position={[x, h * 0.48, d * 0.24]}>
+            <mesh rotation={[Math.PI / 2, 0, 0]}>
+              <cylinderGeometry args={[0.15, 0.16, 0.14, 14]} />
+              <meshStandardMaterial color="#374151" metalness={0.65} roughness={0.35} />
+            </mesh>
+            <mesh position={[0, 0, 0.08]}>
+              <circleGeometry args={[0.11, 14]} />
+              <meshStandardMaterial color="#FFF3C4" emissive="#FBBF24" emissiveIntensity={1.6} toneMapped={false} />
+            </mesh>
+          </group>
+        ))}
+      </group>
     </group>
   );
 }
 
-export function HighBarrierProp({ w = 2.6, h = 1.25, d = 0.7 }) {
+/** Overhead slide-under gantry barrier with chevron hazard board, steel trusses & glowing warning lamps. */
+export function HighBarrierProp({ w = 2.75, h = 1.25, d = 0.72, position = [0, 0, 0], rotation = [0, 0, 0], centered = false }) {
+  const chevron = useMemo(() => createChevronBarrierTexture(), []);
   return (
-    <group>
-      {[-w * 0.46, w * 0.46].map((x) => (
-        <RoundedBox key={x} args={[0.18, h + 1.45, 0.2]} radius={0.04} position={[x, -0.7, 0]} castShadow>
-          <meshStandardMaterial color="#2E2C28" roughness={0.55} metalness={0.45} />
+    <group position={position} rotation={rotation}>
+      <group position={[0, centered ? 0 : 1.9, 0]}>
+        {[-w * 0.46, w * 0.46].map((x) => (
+          <RoundedBox key={x} args={[0.2, 2.6, 0.22]} radius={0.04} position={[x, -0.65, 0]} castShadow>
+            <meshStandardMaterial color="#2E323A" roughness={0.48} metalness={0.55} />
+          </RoundedBox>
+        ))}
+        <RoundedBox args={[w, h * 0.74, d * 0.64]} radius={0.07} position={[0, 0.12, 0]} castShadow receiveShadow>
+          <meshStandardMaterial {...chevron} />
         </RoundedBox>
-      ))}
-      <RoundedBox args={[w, h * 0.68, d * 0.7]} radius={0.07} position={[0, 0.12, 0]} castShadow receiveShadow>
-        <meshStandardMaterial color="#7F1D1D" roughness={0.62} metalness={0.15} />
-      </RoundedBox>
-      {[-0.28, 0.28].map((xOff, i) => (
-        <RoundedBox key={i} args={[w * 0.24, h * 0.5, d * 0.76]} radius={0.03} position={[xOff * w, 0.12, 0]}>
-          <meshStandardMaterial color="#E5B869" roughness={0.42} metalness={0.25} />
+        <RoundedBox args={[w * 0.88, 0.15, d * 0.72]} radius={0.03} position={[0, -h * 0.28, 0]}>
+          <meshStandardMaterial color="#23262C" roughness={0.6} metalness={0.4} />
         </RoundedBox>
-      ))}
-      <RoundedBox args={[w * 0.72, 0.14, d * 0.78]} radius={0.03} position={[0, -h * 0.26, 0]}>
-        <meshStandardMaterial color="#181715" roughness={0.7} />
-      </RoundedBox>
+      </group>
     </group>
   );
 }
 
-export function StylizedCoinProp({ size = 0.34, shadowY = -0.72 }) {
+/** Auto-spinning, gleaming 3D Subway-Surfers embossed golden star coin with milled rim & drop shadow. */
+export function StylizedCoinProp({ size = 0.44, shadowY = -0.78, position = [0, 0, 0], animate = true, solid = false }) {
+  const spinRef = useRef(null);
+  const starTex = useMemo(() => createStarCoinTexture(), []);
+  const phase = (position[0] * 0.7 + position[2] * 0.35) || 0;
+
+  useFrame(({ clock }) => {
+    if (!animate || !spinRef.current) return;
+    const t = clock.elapsedTime;
+    spinRef.current.rotation.y = t * 3.3 + phase;
+    spinRef.current.position.y = Math.sin(t * 3.8 + phase) * 0.09;
+  });
+
   return (
-    <group>
-      <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
-        <cylinderGeometry args={[size, size, 0.11, 22]} />
-        <meshStandardMaterial color="#E5B869" metalness={0.78} roughness={0.18} />
-      </mesh>
-      <mesh>
-        <torusGeometry args={[size * 0.96, 0.045, 10, 26]} />
-        <meshStandardMaterial color="#FFF3E0" metalness={0.8} roughness={0.15} />
-      </mesh>
-      <mesh rotation={[0, 0, Math.PI / 4]}>
-        <boxGeometry args={[size * 0.72, size * 0.72, 0.15]} />
-        <meshStandardMaterial color="#FFF3E0" metalness={0.82} roughness={0.15} />
-      </mesh>
-      <mesh rotation={[0, 0, 0]}>
-        <boxGeometry args={[size * 0.72, size * 0.72, 0.15]} />
-        <meshStandardMaterial color="#FFF3E0" metalness={0.82} roughness={0.15} />
-      </mesh>
+    <group position={position}>
+      <group ref={spinRef}>
+        <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <cylinderGeometry args={[size, size, 0.14, 28]} />
+          <meshPhysicalMaterial
+            {...starTex}
+            color="#FFD54F"
+            metalness={0.8}
+            roughness={0.18}
+            clearcoat={0.85}
+            emissive="#E69A12"
+            emissiveIntensity={0.28}
+          />
+        </mesh>
+        <mesh>
+          <torusGeometry args={[size * 0.96, 0.058, 12, 28]} />
+          <meshPhysicalMaterial color="#FFE98A" metalness={0.88} roughness={0.14} clearcoat={0.9} />
+        </mesh>
+      </group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, shadowY, 0]}>
-        <ringGeometry args={[size * 0.55, size * 0.9, 20]} />
-        <meshBasicMaterial color="#181715" transparent opacity={0.26} depthWrite={false} />
+        <circleGeometry args={[size * 0.72, 18]} />
+        <meshBasicMaterial color="#181715" transparent opacity={0.22} depthWrite={false} />
       </mesh>
     </group>
   );

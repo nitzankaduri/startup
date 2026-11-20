@@ -1,5 +1,6 @@
-from typing import Any, Dict, List, Literal, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
+from blueprint_schemas import GameBlueprint
 
 Vec3 = List[float]
 GameMode = Literal["platformer", "arena_shooter", "time_trial_racer", "survival_waves", "arcade_runner"]
@@ -66,6 +67,7 @@ class GameConfig(BaseModel):
     camera_mode: CameraMode = "follow"
     controls_hint: Optional[str] = None
     architecture_plan: Optional[ArchitecturePlan] = None
+    blueprint: Optional[GameBlueprint] = None
     code: Optional[str] = None
     generation_source: str = "ai_live"
     model_id: str = "gemini-3.5-flash"

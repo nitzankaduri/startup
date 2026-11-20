@@ -1,123 +1,91 @@
-import { useRef } from 'react';
+import { forwardRef, useEffect, useRef } from 'react';
 import { RoundedBox } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { soundEngine } from '../../../../shared/audio/soundEngine';
+import { useGameStore } from '../../store/useGameStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { usePbrMaterial } from '../pbrMaterials';
+import { resolveMovement } from '../runtime/useArenaPhysics';
 import { SmokeTrail } from '../SmokeTrail';
-import { motionBus, stepSpring, triggerJumpMotion, triggerLandMotion } from '../spawnSdk';
+import { motionBus, stepSpring } from '../motionBus';
 import { useGameInput } from '../useGameInput';
 import { SkidMarks } from './SkidMarks';
+import { VehicleHeadlights } from './VehicleHeadlights';
 
 /** Arcade-sim wheeled vehicle with lateral grip vs drift slip, body roll/pitch suspension, rotating wheels & skid marks. */
-export function DrivableVehicle({
-  position = [0, 0, 0],
-  color = '#D96B27',
-  maxSpeed = 24,
-  accel = 22,
-  onTelemetry,
-  children,
-}) {
+export const DrivableVehicle = forwardRef(function DrivableVehicle(
+  { position = [0, 0, 0], color = '#D96B27', maxSpeed = 24, accel = 22, onTelemetry, onCollide, children },
+  fwdRef
+) {
   const { isPressed } = useGameInput();
   const rootRef = useRef(null);
+  const bindRoot = (el) => { rootRef.current = el; if (typeof fwdRef === 'function') fwdRef(el); else if (fwdRef) fwdRef.current = el; };
   const bodyRef = useRef(null);
   const wheelRefs = useRef([]);
   const steerRefs = useRef([]);
   const brakeMatRef = useRef(null);
   const driftRef = useRef({ active: false, x: position[0], z: position[2], yaw: 0 });
   const smokeActiveRef = useRef(false);
-
-  const sim = useRef({ x: position[0], y: position[1], z: position[2], vx: 0, vy: 0, vz: 0, yaw: 0, wheelRot: 0, prevSpd: 0, prevJump: false });
+  const nitroRef = useRef(false);
+  const sim = useRef({ x: position[0], y: position[1], z: position[2], vx: 0, vy: 0, vz: 0, yaw: 0, wheelRot: 0, prevSpd: 0 });
   const roll = useRef({ value: 0, velocity: 0 });
   const pitch = useRef({ value: 0, velocity: 0 });
   const paintMat = usePbrMaterial({ surface: 'automotive_paint', color });
   const glassMat = usePbrMaterial({ surface: 'architectural_glass', color: '#DCE8F0' });
+  useEffect(() => { rootRef.current?.position.set(position[0], position[1], position[2]); }, []);
 
   useFrame((_, rawDelta) => {
+    const gs = useGameStore.getState();
+    if (!gs.hasStarted || gs.gameState !== 'playing' || useSettingsStore.getState().isPaused) return;
     const dt = Math.min(0.05, Math.max(0.001, rawDelta));
     const s = sim.current;
     const throttle = (isPressed('KeyW') || isPressed('ArrowUp') ? 1 : 0) - (isPressed('KeyS') || isPressed('ArrowDown') ? 1 : 0);
     const steerIn = (isPressed('KeyA') || isPressed('ArrowLeft') ? 1 : 0) - (isPressed('KeyD') || isPressed('ArrowRight') ? 1 : 0);
-    const drifting = Boolean(isPressed('ShiftLeft') || isPressed('ShiftRight'));
-    const jumpDown = Boolean(isPressed('Space'));
-    const grounded = s.y <= position[1] + 0.04;
-    if (jumpDown && !s.prevJump && grounded) {
-      s.vy = 11.2;
-      triggerJumpMotion();
-      soundEngine.playJump();
-    }
-    s.prevJump = jumpDown;
-    if (!grounded || s.vy > 0) {
-      s.vy -= 26 * dt;
-      s.y += s.vy * dt;
-      if (s.y <= position[1]) { s.y = position[1]; s.vy = 0; triggerLandMotion(s.x, s.y, s.z); }
-    }
+    const drifting = Boolean(isPressed('Space'));
+    const nitro = Boolean(isPressed('ShiftLeft') || isPressed('ShiftRight'));
+    nitroRef.current = nitro;
+    const fwdX = -Math.sin(s.yaw); const fwdZ = -Math.cos(s.yaw);
+    const rightX = Math.cos(s.yaw); const rightZ = -Math.sin(s.yaw);
+    let fwdSpeed = s.vx * fwdX + s.vz * fwdZ; let latSpeed = s.vx * rightX + s.vz * rightZ;
+    const topSpd = maxSpeed * (nitro ? 1.45 : 1);
+    const power = accel * (nitro ? 1.55 : throttle < 0 ? 1.25 : 1);
+    fwdSpeed = THREE.MathUtils.clamp((fwdSpeed + throttle * power * dt) * Math.exp(-(throttle === 0 ? 1.8 : 0.65) * dt), -maxSpeed * 0.45, topSpd);
 
-    const fwdX = -Math.sin(s.yaw);
-    const fwdZ = -Math.cos(s.yaw);
-    const rightX = Math.cos(s.yaw);
-    const rightZ = -Math.sin(s.yaw);
-
-    let fwdSpeed = s.vx * fwdX + s.vz * fwdZ;
-    let latSpeed = s.vx * rightX + s.vz * rightZ;
-
-    const power = throttle >= 0 ? accel : accel * 1.25;
-    fwdSpeed += throttle * power * dt;
-    fwdSpeed *= Math.exp(-(throttle === 0 ? 1.8 : 0.7) * dt);
-    fwdSpeed = THREE.MathUtils.clamp(fwdSpeed, -maxSpeed * 0.45, maxSpeed);
-
-    const speedFactor = THREE.MathUtils.clamp(Math.abs(fwdSpeed) / 5.5, 0, 1);
-    const steerRate = (drifting ? 2.65 : 1.95) * speedFactor * (fwdSpeed >= -0.2 ? 1 : -1);
+    const speedFactor = Math.max(0.45, THREE.MathUtils.clamp(Math.abs(fwdSpeed) / 5.5, 0, 1));
+    const steerRate = (drifting ? 2.8 : 2.15) * speedFactor * (fwdSpeed >= -0.2 ? 1 : -1);
     s.yaw += steerIn * steerRate * dt;
 
     latSpeed *= Math.exp(-(drifting ? 2.2 : 9.2) * dt);
-    const nfX = -Math.sin(s.yaw);
-    const nfZ = -Math.cos(s.yaw);
-    const nrX = Math.cos(s.yaw);
-    const nrZ = -Math.sin(s.yaw);
-    s.vx = nfX * fwdSpeed + nrX * latSpeed;
-    s.vz = nfZ * fwdSpeed + nrZ * latSpeed;
-    s.x += s.vx * dt;
-    s.z += s.vz * dt;
+    const nfX = -Math.sin(s.yaw); const nfZ = -Math.cos(s.yaw);
+    const nrX = Math.cos(s.yaw); const nrZ = -Math.sin(s.yaw);
+    const col = resolveMovement({ x: s.x + (nfX * fwdSpeed + nrX * latSpeed) * dt, y: s.y, z: s.z + (nfZ * fwdSpeed + nrZ * latSpeed) * dt }, 1.25, { x: nfX * fwdSpeed + nrX * latSpeed, y: 0, z: nfZ * fwdSpeed + nrZ * latSpeed }, onCollide);
+    s.x = col.x; s.z = col.z; s.vx = col.vx; s.vz = col.vz;
     s.wheelRot -= fwdSpeed * dt * 2.1;
 
     const longAccel = (fwdSpeed - s.prevSpd) / dt;
     s.prevSpd = fwdSpeed;
-    const onGround = s.y <= position[1] + 0.04;
-    soundEngine.updateMotionAudio(Math.abs(fwdSpeed), true, onGround);
-
+    soundEngine.updateMotionAudio(Math.abs(fwdSpeed), true, true);
     const rz = stepSpring(roll.current, -steerIn * speedFactor * (drifting ? 0.19 : 0.12), 180, 15, dt);
     const rx = stepSpring(pitch.current, THREE.MathUtils.clamp(-longAccel * 0.006, -0.09, 0.11), 170, 14, dt);
-
-    if (rootRef.current) {
-      rootRef.current.position.set(s.x, s.y, s.z);
-      rootRef.current.rotation.set(0, s.yaw, 0);
-    }
+    if (rootRef.current) { rootRef.current.position.set(s.x, s.y, s.z); rootRef.current.rotation.set(0, s.yaw, 0); }
     if (bodyRef.current) bodyRef.current.rotation.set(rx, 0, rz);
     steerRefs.current.forEach((el) => { if (el) el.rotation.y = steerIn * 0.42; });
     wheelRefs.current.forEach((el) => { if (el) el.rotation.x = s.wheelRot; });
-    if (brakeMatRef.current) brakeMatRef.current.emissiveIntensity = throttle < 0 || drifting ? 2.2 : 0.45;
-
-    motionBus.pos = { x: s.x, y: s.y + 0.8, z: s.z };
-    motionBus.vel = { x: s.vx, y: s.vy, z: s.vz };
-    motionBus.yaw = s.yaw;
-    motionBus.steer = steerIn;
-    motionBus.isGrounded = onGround;
-    motionBus.isBoosting = drifting && Math.abs(fwdSpeed) > 6;
-
-    const isSkid = (drifting && Math.abs(fwdSpeed) > 5) || Math.abs(latSpeed) > 3.2;
-    driftRef.current.active = isSkid;
-    driftRef.current.x = s.x;
-    driftRef.current.z = s.z;
-    driftRef.current.yaw = s.yaw;
-    smokeActiveRef.current = isSkid;
+    if (brakeMatRef.current) brakeMatRef.current.emissiveIntensity = throttle < 0 || drifting ? 2.5 : 0.45;
+    motionBus.pos = { x: s.x, y: s.y + 0.8, z: s.z }; motionBus.vel = { x: s.vx, y: s.vy, z: s.vz };
+    motionBus.yaw = s.yaw; motionBus.steer = steerIn; motionBus.isGrounded = true;
+    motionBus.isBoosting = nitro || (drifting && Math.abs(fwdSpeed) > 6);
+    const isSkid = (drifting && Math.abs(fwdSpeed) > 4.5) || Math.abs(latSpeed) > 3.0;
+    driftRef.current = { active: isSkid, x: s.x, z: s.z, yaw: s.yaw };
+    smokeActiveRef.current = isSkid || nitro;
     onTelemetry?.({ speedKmh: Math.round(Math.abs(fwdSpeed) * 4.2), isDrifting: isSkid, x: s.x, z: s.z, yaw: s.yaw });
   });
 
   const wheelPos = [[-0.82, 0.34, -0.95], [0.82, 0.34, -0.95], [-0.82, 0.34, 0.95], [0.82, 0.34, 0.95]];
   return (
     <>
-      <group ref={rootRef} position={position}>
+      <group ref={bindRoot}>
         <group ref={bodyRef}>
           {children || (
             <>
@@ -140,9 +108,10 @@ export function DrivableVehicle({
             </group>
           </group>
         ))}
+        <VehicleHeadlights nitroRef={nitroRef} zFront={-1.36} zRear={1.36} />
       </group>
       <SmokeTrail activeRef={smokeActiveRef} color="#D8D0C4" baseSize={0.45} maxSize={2.1} />
       <SkidMarks driftRef={driftRef} />
     </>
   );
-}
+});

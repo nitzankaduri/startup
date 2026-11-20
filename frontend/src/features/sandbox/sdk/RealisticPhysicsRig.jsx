@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { soundEngine } from '../../../shared/audio/soundEngine';
 import { SmokeTrail } from './SmokeTrail';
-import { motionBus, stepSpring } from './spawnSdk';
+import { motionBus, stepSpring } from './motionBus';
 
 /** Integrates weighty 3D body motion with mass, torque falloff, ground friction, and air drag. */
 export function stepInertiaBody(body, input = {}, dt = 0.016) {

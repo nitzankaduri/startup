@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { motionBus } from '../spawnSdk';
+import { motionBus } from '../motionBus';
 import { radarBus, registerRadarBlip, unregisterRadarBlip } from './radarBus';
 
 const TMP_V = new THREE.Vector3();

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Check, Crosshair, Link2, RotateCcw, Settings, SlidersHorizontal, Trophy, Volume2, VolumeX, Wind } from 'lucide-react';
+import { ArrowLeft, Check, Crosshair, Link2, Pencil, Play, RotateCcw, Settings, Share2, SlidersHorizontal, Trophy, Volume2, VolumeX, Wind } from 'lucide-react';
 import { DASH_COOLDOWN_MS, useGameStore } from '../store/useGameStore';
+import { useSceneEditorStore } from '../store/useSceneEditorStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { HUDActionButtons, HUDModeWidgets, MODE_HINTS, SynthesisStatusPill } from './HUDModeWidgets';
 import { LeaderboardPanel } from './LeaderboardPanel';
@@ -30,20 +31,9 @@ function usePulse(trigger, ms) {
 export function GameHUD({ onBackToLobby }) {
   const [copied, setCopied] = useState(false);
   const [dashRatio, setDashRatio] = useState(1);
-
-  const currentGame = useGameStore((s) => s.currentGame);
-  const gameState = useGameStore((s) => s.gameState);
-  const finalScore = useGameStore((s) => s.finalScore);
-  const kills = useGameStore((s) => s.kills);
-  const lastDashAt = useGameStore((s) => s.lastDashAt);
-  const hitMarkerAt = useGameStore((s) => s.hitMarkerAt);
-  const nearMissAt = useGameStore((s) => s.nearMissAt);
-  const isMuted = useGameStore((s) => s.isMuted);
-  const controlsHint = useGameStore((s) => s.controlsHint);
-  const resetRun = useGameStore((s) => s.resetRun);
-  const toggleMute = useGameStore((s) => s.toggleMute);
-  const toggleEditor = useGameStore((s) => s.toggleEditor);
+  const { currentGame, gameState, lastDashAt, hitMarkerAt, nearMissAt, isMuted, controlsHint, resetRun, toggleMute, toggleEditor } = useGameStore();
   const togglePause = useSettingsStore((s) => s.togglePause);
+  const { isEditMode, toggleEditMode, setPublishOpen } = useSceneEditorStore();
 
   const showHit = usePulse(hitMarkerAt, 120);
   const showNearMiss = usePulse(nearMissAt, 850);
@@ -101,7 +91,11 @@ export function GameHUD({ onBackToLobby }) {
           <button type="button" onClick={resetRun} title="Restart (R)" className={`inline-flex items-center gap-1 text-xs font-medium px-1 ${MUTED_BTN}`}><RotateCcw className="w-3.5 h-3.5" /><span>Restart</span></button>
           <button type="button" onClick={handleCopyLink} className={`inline-flex items-center gap-1 text-xs font-medium px-1 ${MUTED_BTN}`}>{copied ? <Check className="w-3.5 h-3.5 text-[#D96B27]" /> : <Link2 className="w-3.5 h-3.5" />}<span>{copied ? 'Copied' : 'Share'}</span></button>
           <span className={DIV_CLS} />
-          <button type="button" onClick={toggleEditor} className="inline-flex items-center gap-1.5 text-xs font-medium text-[#181715] dark:text-[#F1F5F9] hover:opacity-75 px-1"><SlidersHorizontal className="w-3.5 h-3.5 text-[#D96B27]" /><span>Edit World</span></button>
+          <button type="button" onClick={toggleEditMode} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-lg transition ${isEditMode ? 'bg-[#D96B27] text-white' : 'text-[#181715] dark:text-[#F1F5F9] hover:opacity-75'}`}>
+            {isEditMode ? <Play className="w-3 h-3 fill-current" /> : <Pencil className="w-3.5 h-3.5 text-[#D96B27]" />}<span>{isEditMode ? 'Play' : 'Edit World'}</span>
+          </button>
+          <button type="button" onClick={() => setPublishOpen(true)} className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-xl bg-[#D96B27] hover:bg-[#C25C1B] text-white transition"><Share2 className="w-3 h-3" /><span>Publish &amp; Export</span></button>
+          <button type="button" onClick={toggleEditor} title="Physics & Remix Drawer" className={`p-1 ${MUTED_BTN}`}><SlidersHorizontal className="w-3.5 h-3.5" /></button>
           <button type="button" onClick={togglePause} aria-label="Settings (Esc)" title="Settings (Esc)" className={`p-1 ${MUTED_BTN}`}><Settings className="w-3.5 h-3.5" /></button>
         </div>
       </div>

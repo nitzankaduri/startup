@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigation2, Star } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
-import { motionBus } from '../spawnSdk';
+import { motionBus } from '../motionBus';
 import { radarBus } from './radarBus';
 
 const RADAR_RADIUS = 54;

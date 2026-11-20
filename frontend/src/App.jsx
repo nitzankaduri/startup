@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { QuickEditDrawer } from './features/editor/QuickEditDrawer';
+import { SceneInspector } from './features/editor/SceneInspector';
 import { LobbyPage } from './features/lobby/LobbyPage';
 import { GameHUD } from './features/sandbox/components/GameHUD';
+import { PublishModal } from './features/sandbox/components/PublishModal';
 import { SandboxViewport } from './features/sandbox/components/SandboxViewport';
 import { SpeedEffects } from './features/sandbox/components/SpeedEffects';
+import { StudioCopilotBar } from './features/sandbox/components/StudioCopilotBar';
 import { TouchControls } from './features/sandbox/components/TouchControls';
 import { useGameStore } from './features/sandbox/store/useGameStore';
-import { fetchGameById, fetchGames, generateGame, recordGamePlay } from './shared/api/gameApi';
+import { fetchGameById, fetchGames, generateGameStream, recordGamePlay } from './shared/api/gameApi';
 import { useTheme } from './shared/hooks/useTheme';
 
 const getPlayIdFromPath = () => {
@@ -24,6 +27,7 @@ export function App() {
 
   const [games, setGames] = useState([]);
   const [isFetchingGames, setIsFetchingGames] = useState(true);
+  const [buildStage, setBuildStage] = useState(null);
   const [error, setError] = useState('');
 
   const loadRecentGames = useCallback(async () => {
@@ -71,8 +75,19 @@ export function App() {
   }, [loadRecentGames, openGame, setGame, setLoading]);
 
   const handleGenerate = async (prompt) => {
-    setError(''); setLoading(true);
-    try { openGame(await generateGame(prompt), true); } catch (err) { setError(err.message || 'Failed to generate world.'); } finally { setLoading(false); }
+    setError('');
+    setLoading(true);
+    setBuildStage({ step: 1, total: 3, label: '1/3 Designing game rules & mechanics...' });
+    try {
+      const game = await generateGameStream(prompt, (progress) => setBuildStage(progress));
+      setBuildStage({ step: 3, total: 3, label: '3/3 Compiling & launching...' });
+      openGame(game, true);
+    } catch (err) {
+      setError(err.message || 'Failed to generate world.');
+    } finally {
+      setLoading(false);
+      setBuildStage(null);
+    }
   };
 
   if (currentGame) {
@@ -82,6 +97,9 @@ export function App() {
         <SpeedEffects />
         <GameHUD onBackToLobby={handleBackToLobby} />
         <TouchControls />
+        <StudioCopilotBar theme={theme} />
+        <SceneInspector />
+        <PublishModal />
         <QuickEditDrawer onRemixed={(remixed) => openGame(remixed, true)} />
       </div>
     );
@@ -94,6 +112,7 @@ export function App() {
       games={games}
       isFetchingGames={isFetchingGames}
       isLoading={isLoading}
+      buildStage={buildStage}
       error={error}
       onClearError={() => setError('')}
       onGenerate={handleGenerate}

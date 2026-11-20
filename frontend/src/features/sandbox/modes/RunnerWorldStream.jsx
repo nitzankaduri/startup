@@ -83,10 +83,10 @@ export function RunnerWorldStream({ chunksRef }) {
         <group key={chunk.id} ref={(el) => { chunkGroupsRef.current[ci] = el; }} position={[0, 0, chunk.zCenter]}>
           {chunk.obstacles.map((o) => (
             <group key={o.id} position={[o.x, o.y, o.z - chunk.zCenter]}>
-              {o.kind === 'train' && <StylizedTrain w={o.w} h={o.h} d={o.d} />}
-              {o.kind === 'ramp' && <StylizedRampTrain w={o.w} h={o.h} d={o.d} />}
-              {o.kind === 'low_hurdle' && <LowHurdleProp w={o.w} h={o.h} d={o.d} />}
-              {o.kind === 'high_barrier' && <HighBarrierProp w={o.w} h={o.h} d={o.d} />}
+              {o.kind === 'train' && <StylizedTrain centered w={o.w} h={o.h} d={o.d} />}
+              {o.kind === 'ramp' && <StylizedRampTrain centered w={o.w} h={o.h} d={o.d} />}
+              {o.kind === 'low_hurdle' && <LowHurdleProp centered w={o.w} h={o.h} d={o.d} />}
+              {o.kind === 'high_barrier' && <HighBarrierProp centered w={o.w} h={o.h} d={o.d} />}
               {(o.kind === 'moving_hazard' || o.kind === 'bridge') && (
                 <RoundedBox args={[o.w, o.h, o.d]} radius={0.08} smoothness={3} castShadow receiveShadow>
                   <meshStandardMaterial color={o.kind === 'bridge' ? '#6B5B3E' : '#7F1D1D'} roughness={0.65} metalness={0.18} />

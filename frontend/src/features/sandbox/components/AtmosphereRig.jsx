@@ -30,11 +30,12 @@ const HAZE_FRAG = `
 `;
 
 /** Atmospheric scattering sky, distant horizon haze band, and radial sun glare/god-ray halo. */
-export function AtmosphereRig({ horizonColor = '#E8C9A3', isTwilight = false, sunPos = [28, 18, 22] }) {
+export function AtmosphereRig({ horizonColor = '#E8C9A3', isTwilight = false, sunPos = [28, 18, 22], skySunPos = null }) {
   const { camera } = useThree();
   const haloRef = useRef(null);
   const hazeRef = useRef(null);
-  const sunDir = useMemo(() => new THREE.Vector3(...sunPos).normalize(), [sunPos[0], sunPos[1], sunPos[2]]);
+  const effectiveSkySun = skySunPos || sunPos;
+  const sunDir = useMemo(() => new THREE.Vector3(...effectiveSkySun).normalize(), [effectiveSkySun[0], effectiveSkySun[1], effectiveSkySun[2]]);
   const camFwd = useMemo(() => new THREE.Vector3(), []);
 
   const haloUniforms = useMemo(() => ({
@@ -61,7 +62,7 @@ export function AtmosphereRig({ horizonColor = '#E8C9A3', isTwilight = false, su
     <>
       <Sky
         distance={4500}
-        sunPosition={sunPos}
+        sunPosition={effectiveSkySun}
         turbidity={isTwilight ? 9 : 6}
         rayleigh={isTwilight ? 0.45 : 1.5}
         mieCoefficient={0.005}

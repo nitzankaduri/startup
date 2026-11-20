@@ -15,10 +15,16 @@ startup/
 │   ├── ARCHITECTURE.md        # System architecture (this file)
 │   └── CHANGELOG.md           # Chronological project changelog
 ├── backend/
-│   ├── main.py                # FastAPI app, CORS, REST endpoints
+│   ├── main.py                # FastAPI app, CORS, REST endpoints & stream/refine router
+│   ├── stream_routes.py       # POST /api/generate-stream SSE & POST /api/games/refine
+│   ├── blueprint_schemas.py   # Pydantic Stage-1 GameBlueprint (BiomeStage/Controller/Entities) & Refine schemas
+│   ├── code_validator.py      # Pre-flight structural, SDK symbol, win/lose & useFrame setState validator
+│   ├── validator_constants.py # Verified spawnSdk exports & JSX primitive whitelist
+│   ├── game_architect.py      # Stage 1 Deep Systems Architect (thinkingBudget: 8192)
 │   ├── schemas.py             # Pydantic GameConfig, ScoreEntry, Thumbnail models
-│   ├── database.py            # Async Motor MongoDB client + memory fallback
-│   ├── ai_service.py          # Gemini JSON level generator & remix co-pilot
+│   ├── database.py            # Async Motor MongoDB client + memory fallback (update_game_code)
+│   ├── ai_service.py          # Stage 2 Synthesis (thinkingBudget: 16384), pre-flight auto-repair & Vibe Refinement
+│   ├── ai_helpers.py          # Resilient json_repair parser & GameConfig sanitizer
 │   ├── prompts.py             # Multi-genre level-design & remix prompts
 │   ├── presets.py             # Mode-aware deterministic fallback builder
 │   ├── presets_modes.py       # Arena, Survival Waves, and Racer presets
@@ -39,7 +45,8 @@ startup/
         │   │   ├── HeroMeshBackground.jsx # Animated sunset apricot/coral/cream/sky-blue radial mesh gradient
         │   │   ├── lobbyHelpers.jsx       # Typing placeholder hook, genre detection & filter matching
         │   │   ├── Navbar.jsx             # Sticky translucent editorial navigation bar
-        │   │   ├── PromptBar.jsx          # Floating 24px white prompt card, quick-chips & Spawn World CTA
+        │   │   ├── PromptBar.jsx          # Floating 24px white prompt card, build progress & Spawn World CTA
+        │   │   ├── BuildProgressPill.jsx  # Warm-editorial 1/3 -> 2/3 -> 3/3 Two-Stage synthesis progress bar
         │   │   ├── ShowcaseStrip.jsx      # Hanging architectural showcase cards
         │   │   ├── RecentGamesGrid.jsx    # Filterable Bento world grid
         │   │   └── GameCard.jsx           # 3D WebP card, genre/score/play badges, hover Play/Remix
@@ -52,26 +59,52 @@ startup/
         │   │   │   ├── useKeyboardInput.jsx
         │   │   │   └── touchInputState.jsx
         │   │   ├── sdk/
-        │   │   │   ├── spawnSdk.jsx           # Atomic Game Building Blocks barrel + motionBus
-        │   │   │   ├── compileGameCode.jsx    # Sucrase JSX sandbox compiler with Atomic SDK scope
-        │   │   │   ├── useGameInput.jsx       # Keyboard, pointer, mesh drag & ground raycast
-        │   │   │   ├── SmartCamera.jsx        # Pivot raycast wall push-in, rotational trauma shake, Perlin breathing & FOV
-        │   │   │   ├── cameraMath.jsx         # smoothDamp, dampVec3 & avoidCameraCollision helpers
-        │   │   │   ├── gameFeel.jsx           # Hit-stop time-dilation controller & floating world-space damage/score popups
+        │   │   │   ├── spawnSdk.jsx           # Atomic Game Building Blocks barrel
+        │   │   │   ├── motionBus.jsx          # Zero-dependency telemetry, camera shake & physics motion bus
+        │   │   │   ├── compileGameCode.jsx    # Sucrase JSX compiler, start/pause/edit-gated useFrame & R3F DOM crash guard
+        │   │   │   ├── useGameInput.jsx       # Dual direct/.current keyboard map, pointer, mesh drag & ground raycast
+        │   │   │   ├── SmartCamera.jsx        # Ref/array/fn target follow, motionBus sync, raycast push-in, shake & FOV
+        │   │   │   ├── cameraMath.jsx         # resolveCameraTarget, smoothDamp, dampVec3 & avoidCameraCollision helpers
+        │   │   │   ├── gameFeel.jsx           # useGameLoop (dt clamp + auto-pause), triggerHitStop & floating popups
+        │   │   │   ├── HealthBar3D.jsx        # Warm-editorial world-space floating HP/posture/progress meter
         │   │   │   ├── RealisticPhysicsRig.jsx # Weighty momentum, inertia, suspension compression & weight transfer
         │   │   │   ├── SmokeTrail.jsx         # Soft alpha-blended billboard tire/thruster smoke plumes
         │   │   │   ├── MeshBuilder.jsx        # Multi-map PBR materials, ExtrudedShape, LatheObject, ParticleBurst, FloatingLabel
-        │   │   │   ├── pbrNoise.jsx           # Seamless tileable fBm noise & 13 physical surface presets
-        │   │   │   ├── pbrMaterials.jsx       # 512x512 MeshPhysicalMaterial albedo/normal/roughness synthesizer
+        │   │   │   ├── pbrNoise.jsx           # Seamless tileable fBm noise, 18 surface presets & Three.js r169 CDN map loader
+        │   │   │   ├── pbrMaterials.jsx       # 512x512 MeshPhysicalMaterial maps (bricks/turf/sand/alloy/wood) w/ anisotropy=8
         │   │   │   ├── RealisticTerrain.jsx   # 128x128 terrain with multi-layer slope & elevation shader blending
         │   │   │   ├── StudioBackdrop.jsx     # ContactShadows, sunlight, Sky + Environment
         │   │   │   ├── proceduralTextures.jsx
         │   │   │   ├── assets/
-        │   │   │   │   ├── modelRegistry.jsx           # Curated CORS-enabled GLB URLs, targetHeight & preloadAllRegistryModels
+        │   │   │   │   ├── assetCatalog.jsx            # 40+ genre-categorized GLB + StudioProp catalog & ASSET_MANIFEST
+        │   │   │   │   ├── AutoNormalizeMesh.jsx       # Box3 grounded auto-normalization, SkeletonUtils.clone & ContactShadows
+        │   │   │   │   ├── StudioProps.jsx             # Pine, boulder, chest, crate & unified PROP_MAP (40+ assets/aliases)
+        │   │   │   │   ├── studioPropParts.jsx         # Castle keep, sci-fi turret, supercar coupe & starfighter jet
+        │   │   │   │   ├── scifiProps.jsx              # Planetary rover, cryo-pod, orbital ring gate & asteroid cluster
+        │   │   │   │   ├── fantasyProps.jsx            # Knight hero, goblin/skeleton enemy, timber tavern, crystal shrine & catapult
+        │   │   │   │   ├── modernProps.jsx             # Police cruiser, offroad buggy, streetlamp, concrete barrier, suspension bridge & skyscraper
+        │   │   │   │   ├── natureProps.jsx             # Palm tree, stylized oak, wooden dock, flickering campfire & ruins pillar
+        │   │   │   │   ├── BiomeStage.jsx              # 6 AAA biome stages with timeOfDay moods, practical lights, rain puddles & GPU weather
+        │   │   │   │   ├── biomePresets.jsx            # Theme configs: sunset_canyon, alpine_meadow, cyber_dusk, tropical_archipelago, lunar_crater, obsidian_fortress
+        │   │   │   │   ├── modelRegistry.jsx           # Backward-compatible re-export of GLB_ASSETS & resolveModelAsset
         │   │   │   │   ├── normalizeModelMetrics.jsx   # Box3 targetHeight auto-scaling & y=0 grounding
         │   │   │   │   ├── SkeletalActor.jsx           # SkeletonUtils.clone, ContactShadows & 0.15s crossFadeTo GLB rig
-        │   │   │   │   ├── PropModel.jsx               # GLB vehicle/prop loader with normalized scale & shadows
-        │   │   │   │   └── ProceduralAssetFallbacks.jsx # Multi-map PBR offline procedural fallbacks
+        │   │   │   │   ├── ArticulatedRunner.jsx       # Subway-Surfers grade articulated IK runner with banking, jump & slide dust
+        │   │   │   │   ├── PropModel.jsx               # Auto-normalized GLB / StudioProp loader
+        │   │   │   │   └── ProceduralAssetFallbacks.jsx # Multi-part StudioProp & character fallback wrapper
+        │   │   │   ├── atmosphere/
+        │   │   │   │   ├── WeatherSystem.jsx           # GPU rain streaks, snow, embers, sandstorm & fireflies camera-frustum volume
+        │   │   │   │   ├── weatherPresets.jsx          # Weather configs, dawn/noon/golden_hour/midnight palettes & stage mood resolver
+        │   │   │   │   └── PracticalLights.jsx         # Warm flickering lantern posts & point lights during midnight / golden_hour
+        │   │   │   ├── world/
+        │   │   │   │   ├── CityRoadBuilder.jsx         # Flat paved <CityGrid /> & banked spline <RaceTrack /> w/ curbs & barrier colliders
+        │   │   │   │   └── raceTrackHelpers.jsx        # CatmullRom spline banked road & barrier geometry builder
+        │   │   │   ├── worlds/
+        │   │   │   │   ├── worldTextures.jsx           # 512x512 architectural facade (arched/grid windows) & dashed asphalt textures
+        │   │   │   │   ├── corridorBanners.jsx         # Brick station overpasses, signal lights, festival pennants & market crates
+        │   │   │   │   ├── SubwayCorridor.jsx          # Infinite scrolling sunlit 3-lane track corridor with ties, rails & buildings
+        │   │   │   │   ├── cityTraffic.jsx             # Autonomous clearcoat cruising AI traffic cars with headlights
+        │   │   │   │   └── CityBlockWorld.jsx          # GTA-style sunlit city grid with avenues, sidewalks, towers, lamps & trees
         │   │   │   ├── foliage/
         │   │   │   │   ├── InstancedFoliage.jsx        # GPU-instanced wind-swaying grass, flowers, shrubs & pebbles
         │   │   │   │   └── foliagePresets.jsx          # 6 biome palettes, terrain height sampler & tuft geometry
@@ -84,7 +117,9 @@ startup/
         │   │   │   │   ├── SmartEntity.jsx             # Autonomous patrol/chase/turret/swarm/boss AI actor
         │   │   │   │   └── entitySteering.jsx          # Raycast obstacle avoidance & ancestor damage routing
         │   │   │   ├── vehicles/
-        │   │   │   │   ├── DrivableVehicle.jsx         # Wheeled grip/drift sim, suspension roll/pitch & headlights
+        │   │   │   │   ├── DrivableVehicle.jsx         # Wheeled grip/drift/nitro sim, SpotLight headlights, brake lamps & skid marks
+        │   │   │   │   ├── ArcadeCarVisual.jsx         # Animated GT body, steering wheels, SpotLights & nitro flames for PlayerController
+        │   │   │   │   ├── VehicleHeadlights.jsx       # Twin bumper SpotLights + flickering warm nitro exhaust cones
         │   │   │   │   ├── SkidMarks.jsx               # Pooled handbrake drift tire decals
         │   │   │   │   └── FlyableCraft.jsx            # 6-DOF banking flight/hover rig with lead reticle
         │   │   │   ├── strategy/
@@ -98,9 +133,16 @@ startup/
         │   │   │   ├── progression/
         │   │   │   │   ├── RunProgression.jsx          # Live x2/x3/x5 combo streak meter, decaying timer & draft bus
         │   │   │   │   └── UpgradeModal.jsx            # 3-card warm-editorial upgrade draft overlay (click or 1/2/3)
-        │   │   │   └── props/
-        │   │   │       ├── StylizedTrain.jsx
-        │   │   │       └── StylizedObstacles.jsx
+        │   │   │   ├── props/
+        │   │   │   │   ├── propTextures.jsx        # 512x256 chevron barrier, embossed star coin & louvered train roof textures
+        │   │   │   │   ├── StylizedTrain.jsx       # Subway-Surfers golden/burgundy metro train with louvered roof & LED lights
+        │   │   │   │   └── StylizedObstacles.jsx   # Chevron sawhorse hurdle, overhead barrier & spinning embossed star coin
+        │   │   │   └── runtime/
+        │   │   │       ├── GameRuntimeKit.jsx      # Runtime barrel, ColliderBox & GameRuntimeProvider
+        │   │   │       ├── useArenaPhysics.jsx     # 2-pass AABB/sphere collider registry, registerObjectCollider, slide pushout & crash impacts
+        │   │   │       ├── useMissionState.jsx     # Mission/wave/HP/objective state machine synced to HUD & win/loss
+        │   │   │       ├── PlayerController.jsx    # 4 battle-tested presets: third_person_action, arcade_vehicle, flight_shooter, tactical_isometric
+        │   │   │       └── runtimeRigHelpers.jsx   # Pure 60FPS step integrators for action, vehicle drift & 6-DOF flight
         │   │   ├── modes/
         │   │   │   ├── combatBus.jsx, ArenaCombatSystem.jsx
         │   │   │   ├── WaveSpawner.jsx, RacerController.jsx
@@ -113,12 +155,17 @@ startup/
         │   │       ├── WorldScenery.jsx, WorldTrackDressing.jsx, BiomeTerrain.jsx, sceneryHelpers.jsx
         │   │       ├── ThumbnailCapturer.jsx, LeaderboardPanel.jsx
         │   │       ├── GameHUD.jsx, HUDModeWidgets.jsx, TitleOverlay.jsx, PauseMenu.jsx, TouchControls.jsx
+        │   │       ├── PublishModal.jsx, publishHelpers.jsx # 1-Click Share Link/QR, Website <iframe> Embed & Playable .html Export
+        │   │       ├── StudioCopilotBar.jsx  # Collapsible live multi-turn Vibe Refinement Co-Pilot bar
         │   │       ├── ParticleBursts.jsx, DashTrail.jsx
         │   │       ├── PlayerController.jsx, PlayerMesh.jsx, CharacterModel.jsx, VehicleMesh.jsx
         │   │       ├── AssetCatalog.jsx
         │   │       └── entities/       # 16 modular 3D entity components
         │   └── editor/
-        │       └── QuickEditDrawer.jsx # Live physics tweaker & AI remix
+        │       ├── QuickEditDrawer.jsx  # Live physics tweaker & AI remix drawer
+        │       ├── SceneInspector.jsx   # Floating right-docked 3D inspector (Scale, Rotation Y, Speed/HP, Tint, Duplicate/Delete)
+        │       ├── SandboxEditorRig.jsx # Free OrbitControls + click-to-select 3D warm terracotta selection gizmo
+        │       └── sceneEditUtils.jsx   # Raycast editable-ancestor filter, material cloning & SkeletonUtils duplicator
         └── shared/
             ├── api/gameApi.jsx         # Fetch client for FastAPI endpoints
             ├── audio/
@@ -129,8 +176,11 @@ startup/
 ```
 
 ## 3. Performance, Mobile & Social Subsystems
-- **AI Bespoke Game Synthesis & Self-Healing (`ai_service.py`, `prompts.py`, `main.py`):** Authenticates via official `google-genai` (`genai.Client(api_key=...)`) targeting `gemini-3.5-flash` (with live failover across `3.8`/`3.7`/`3.6` and `45s` per-attempt timeout) using `temperature: 0.9`, `max_output_tokens: 16384`, `thinking_budget: 6144`, and `response_mime_type: "application/json"`. Strictly rejects missing `GEMINI_API_KEY` (`HTTP 503`) or malformed/empty JSX outputs (`HTTP 502`) with zero silent fallback to canned templates, displaying `"AI Live Synthesized"` vs `"Fallback: <reason>"` transparently via `SynthesisStatusPill` (`HUDModeWidgets.jsx`). Enforces `OUTDOOR_DETAIL_RULE`, `DIRECTOR_PACING_MANDATE` (`triggerHitStop`, `spawnFloatingNumber`, `triggerCameraShake`, `triggerUpgradeDraft` after Wave 1 / Checkpoint 2, interactive crates/barrels, energy cores, elevated vantage points, and an armored `boss` climax guarding the final `ObjectiveBeacon`), and Pre-Output QA verification across the complete AAA stack (`SkeletalActor`, `PropModel`, `SmartEntity`, `DynamicWater`, `InstancedFoliage`, `ProjectilePool`, `ExplosionBurst`, `DrivableVehicle`, `FlyableCraft`, `GridBuilder`, `useEconomy`, `ObjectiveBeacon`, `RunProgression`, `RealisticTerrain`, `pbrMaterials`, `<Sky>` + `<Environment>`, `PostFX`, `RealisticPhysicsRig`). Includes `POST /api/fix-code` (`fix_generated_code` with `thinkingBudget: 2048`) for automatic compile/runtime self-healing.
-- **Photorealistic PBR & Post-Processing Pipeline (`GameCanvas.jsx`, `SceneEnvironment.jsx`, `AtmosphereRig.jsx`, `PostFX.jsx`, `SceneCleanup.jsx`):** Uses `ACESFilmicToneMapping`, soft `PCFShadowMap` (`2048 -> 1024`, player-following `[-35, 35]` frustum, `shadow-bias={-0.0003}`, `shadow-normalBias={0.025}`), Drei `<Sky>` + volumetric sun-glare god-ray halo & horizon haze dome (`AtmosphereRig.jsx`), cached `256px` (`frames={1}`) PMREM `<Environment>` with `<Lightformer>` sky/sun/ground panels, and crash-proof `PostFX.jsx` (`<EffectComposer multisampling={0}>`, `<Bloom>`, `<ToneMapping.ACES_FILMIC>`) scaled by `Low` | `Balanced` | `Ultra` presets in `useSettingsStore`.
+- **Two-Stage Deep AI Synthesis Pipeline (`game_architect.py`, `ai_service.py`, `stream_routes.py`, `prompts.py`):**
+  - **Stage 1 (`design_game_blueprint`, `thinking_budget: 8192`):** Dissects every prompt into `genre_and_camera` (`camera_rig`, `player_controller_preset`), `unique_core_mechanics` (3+), `visual_art_direction` (`biome_stage_theme`, `time_of_day`, `weather`, `studio_entities`, zero neon), road-aware or `getTerrainHeight(x, z)` spatial rules, and `rules_and_progression`.
+  - **Stage 2 & Pre-Flight Self-Repair (`generate_game_config`, `code_validator.py`, `thinking_budget: 16384`, `max_output_tokens: 24576`):** Enforces `<CityGrid />` / `<RaceTrack />` + `flatGround` road-aligned spawns for urban/driving prompts, `getTerrainHeight(x, z)` terrain grounding, `<ObjectiveBeacon />` waypoints, steering AI opponents, and `useMissionState` `onVictory`/`onDefeat` triggers alongside `validate_game_code` + automatic Python self-repair before returning.
+  - **Live Vibe Refinement (`POST /api/games/refine`, `StudioCopilotBar.jsx`):** Collapsible in-game Studio Co-Pilot prompt bar enabling multi-turn iterative upgrades (preserving working mechanics, persisting updated code to DB via `update_game_code`, and live-resetting the viewport).
+- **Photorealistic PBR & Post-Processing Pipeline (`GameCanvas.jsx`, `SceneEnvironment.jsx`, `AtmosphereRig.jsx`, `PostFX.jsx`, `SceneCleanup.jsx`):** Uses soft `2048x2048` directional shadows (`[-32, 32]` player-following frustum, `shadow-bias={-0.0003}`, `shadow-normalBias={0.025}`), Drei `<Sky>` + volumetric sun-glare & horizon haze dome (`AtmosphereRig.jsx`), cached `256px` (`frames={1}`) PMREM `<Environment>` `<Lightformer>` rig, and crash-proof `PostFX.jsx` (`PostFXBoundary` + `<EffectComposer multisampling={0} enableNormalPass={false}>`, `<Bloom mipmapBlur luminanceThreshold={1.12} />`, `<ToneMapping mode={ToneMappingMode.ACES_FILMIC} />`) scaled by `Low` | `Balanced` | `Ultra` presets.
 - **Mobile Touch Controls (`TouchControls.jsx`, `touchInputState.jsx`):** Auto-detects coarse touch pointers and renders a matte thumb-joystick (left) and Jump/Dash/Fire buttons (right).
 - **Live 3D Thumbnail Capture & Leaderboards (`ThumbnailCapturer.jsx`, `LeaderboardPanel.jsx`, `GameHUD.jsx`, `main.py`, `database.py`):** Captures WebP screenshots via `preserveDrawingBuffer: true`, computes dynamic `finalScore`, increments `plays_count` (`POST /api/games/{game_id}/play`), persists Top-10 sorted records (`POST /api/games/{game_id}/score` accepting `{ player_name, score, time_seconds }`), displays Top-5 leaderboards on both Victory and Run-Ended screens, and provides 1-click `/play/{id}` challenge link copying with confirmation toast.
 

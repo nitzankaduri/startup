@@ -118,3 +118,18 @@ async def add_game_score(game_id: str, entry: Dict[str, Any]) -> Optional[List[D
                 item["scores"] = top_scores
                 break
     return top_scores
+
+
+async def update_game_code(game_id: str, code: str) -> bool:
+    try:
+        col = _get_collection()
+        res = await col.update_one({"id": game_id}, {"$set": {"game_config.code": code, "game_config.generated_code": code}})
+        return res.matched_count > 0
+    except Exception:
+        for item in _memory_store:
+            if item["id"] == game_id:
+                cfg = item.setdefault("game_config", {})
+                cfg["code"] = code
+                cfg["generated_code"] = code
+                return True
+        return False

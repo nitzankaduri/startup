@@ -4,18 +4,17 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../store/useGameStore';
 import { useSettingsStore } from '../store/useSettingsStore';
-import { attachCameraInputs, avoidCameraCollision, dampVec3, smoothDamp } from './cameraMath';
+import { attachCameraInputs, avoidCameraCollision, dampVec3, resolveCameraTarget, smoothDamp } from './cameraMath';
 import { noise2D } from './pbrNoise';
-import { motionBus } from './spawnSdk';
+import { motionBus } from './motionBus';
 
 const DESIRED_POS = new THREE.Vector3();
 const LOOK_ORIGIN = new THREE.Vector3();
 const PIVOT_POS = new THREE.Vector3();
-const resolveTarget = (t) => (typeof t === 'function' ? t() : Array.isArray(t) ? { x: t[0], y: t[1], z: t[2] } : t || motionBus.pos);
 
 /** Cinematic gimbal camera: Perlin micro-breathing, critically-damped spring follow, collision avoidance & speed FOV. */
 export function SmartCamera({
-  mode = 'follow', target, distance = 8.6, height = 4.5, fov = 60, zoom = 16, minZoom = 7, maxZoom = 34,
+  mode = 'follow', target, targetPosition, targetRef, distance = 7.4, height = 3.9, fov = 62, zoom = 16, minZoom = 7, maxZoom = 34,
   panSpeed = 16, isRacer = false, pointerLock = false,
 }) {
   const { camera, gl, scene } = useThree();
@@ -27,10 +26,12 @@ export function SmartCamera({
   const lookVel = useRef({ x: 0, y: 0, z: 0 });
   const fovVel = useRef({ fov: 0 });
   const smoothLook = useRef(new THREE.Vector3(0, 1, -2));
+  const prevTargetPos = useRef(null);
   const raycaster = useRef(new THREE.Raycaster());
   const panRef = useRef({ x: 0, z: 0, zoom });
   const lookRef = useRef({ yaw: 0, pitch: 0, drag: false, lx: 0, ly: 0 });
   const keysRef = useRef({});
+  const rawTarget = target ?? targetPosition ?? targetRef;
 
   useEffect(() => { panRef.current.zoom = THREE.MathUtils.clamp(zoom, minZoom, maxZoom); }, [zoom, minZoom, maxZoom]);
 
@@ -41,7 +42,18 @@ export function SmartCamera({
 
   useFrame(({ clock }, rawDelta) => {
     const dt = Math.min(0.05, Math.max(0.001, rawDelta));
-    const p = resolveTarget(target);
+    const { pos: p, hasCustom } = resolveCameraTarget(rawTarget, motionBus.pos);
+    if (hasCustom) {
+      if (prevTargetPos.current) {
+        motionBus.vel = {
+          x: (p.x - prevTargetPos.current.x) / dt,
+          y: (p.y - prevTargetPos.current.y) / dt,
+          z: (p.z - prevTargetPos.current.z) / dt,
+        };
+      }
+      prevTargetPos.current = { x: p.x, y: p.y, z: p.z };
+      motionBus.pos = { x: p.x, y: p.y, z: p.z };
+    }
     if (!hasStarted) {
       const swayX = Math.sin(clock.elapsedTime * 0.45) * 0.65;
       const swayY = Math.cos(clock.elapsedTime * 0.6) * 0.22;
@@ -99,6 +111,7 @@ export function SmartCamera({
 
     dampVec3(smoothLook.current, LOOK_ORIGIN.x, LOOK_ORIGIN.y, LOOK_ORIGIN.z, lookVel.current, 0.11, 0.13, 0.11, dt);
     camera.lookAt(smoothLook.current);
+    camera.rotation.z += THREE.MathUtils.clamp(-(motionBus.steer || v.x * 0.04) * 0.035, -0.055, 0.055);
 
     const shakeAge = (performance.now() - shakeAt) / 1000;
     const storeTrauma = shakeAt > 0 && shakeAge < 0.45 ? 1 - shakeAge / 0.45 : 0;
@@ -122,7 +135,7 @@ export function SmartCamera({
   });
 
   if (mode === 'orbit') {
-    const p = resolveTarget(target);
+    const { pos: p } = resolveCameraTarget(rawTarget, motionBus.pos);
     return <OrbitControls makeDefault enableDamping dampingFactor={0.08} minDistance={4} maxDistance={42} target={[p.x, p.y, p.z]} />;
   }
   return null;

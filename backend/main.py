@@ -28,9 +28,11 @@ from schemas import (
     ScoreSubmitRequest,
     ThumbnailRequest,
 )
+from stream_routes import stream_router
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 app = FastAPI(title="Spawn.gg API", version="0.1.0")
+app.include_router(stream_router)
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,21 +1,25 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Html } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/useGameStore';
+import { useSceneEditorStore } from '../../store/useSceneEditorStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { soundEngine } from '../../../../shared/audio/soundEngine';
 import { SkeletalActor } from '../assets/SkeletalActor';
 import { getFeelDelta, spawnFloatingNumber, triggerHitStop } from '../gameFeel';
-import { motionBus } from '../spawnSdk';
+import { registerCollider, unregisterCollider } from '../runtime/useArenaPhysics';
+import { motionBus } from '../motionBus';
 import { ExplosionBurst } from '../vfx/ExplosionBurst';
 import { BEHAVIOR_DEFAULTS, computeAvoidanceSteer } from './entitySteering';
 
 /** Autonomous state-machine AI actor with knockback, 0.12s hit-flash, floating damage numbers, and hit-stop. */
 export const SmartEntity = forwardRef(function SmartEntity(
-  { behavior = 'patrol_chase', model = 'hero', hp = 100, position = [0, 0, -12], waypoints = [], scale = 1, damage = 12, onAttack, onDefeat },
+  { behavior = 'patrol_chase', model = 'hero', hp = 100, position = [0, 0, -12], waypoints = [], scale = 1, damage = 12, solid = true, colliderPadding = 0, onAttack, onDefeat },
   ref
 ) {
   const { scene, camera } = useThree();
+  const entityColId = `entity-${useId()}`;
   const rootRef = useRef(null);
   const telegraphRef = useRef(null);
   const animRef = useRef('Idle');
@@ -27,19 +31,16 @@ export const SmartEntity = forwardRef(function SmartEntity(
   const [hitFlashAt, setHitFlashAt] = useState(0);
   const [deadAt, setDeadAt] = useState(0);
   const [gone, setGone] = useState(false);
-
   const stRef = useRef({
     wpIdx: 0, attackPhase: 'none', timer: 0, cooldown: 0,
     pos: new THREE.Vector3(...position), yaw: 0, knockVel: new THREE.Vector3(),
     flank: behavior === 'patrol_chase' ? (Math.random() > 0.5 ? 1 : -1) : 0,
   });
-
   const route = useMemo(() => {
     if (waypoints.length) return waypoints;
     const [x, y, z] = position;
     return [[x - 3.5, y, z], [x, y, z + 3.5], [x + 3.5, y, z], [x, y, z - 3.5]];
   }, [waypoints, position]);
-
   const takeDamage = useCallback((amt = 25, impulse) => {
     if (deadAt > 0) return;
     const st = stRef.current;
@@ -61,35 +62,35 @@ export const SmartEntity = forwardRef(function SmartEntity(
   }, [deadAt]);
 
   useImperativeHandle(ref, () => ({ takeDamage }), [takeDamage]);
-  useEffect(() => { if (rootRef.current) rootRef.current.userData = { takeDamage, smartEntity: true }; }, [takeDamage]);
+  useEffect(() => {
+    if (rootRef.current) rootRef.current.userData = {
+      ...rootRef.current.userData, takeDamage, smartEntity: true, entityLabel: model,
+      speed: spec.chaseSpeed, hp: curHp, setHp: setCurHp,
+    };
+  }, [takeDamage, model, spec.chaseSpeed, curHp]);
 
+  useEffect(() => () => unregisterCollider(entityColId), [entityColId]);
   useFrame((_, rawDelta) => {
-    if (gone || !rootRef.current) return;
-    const dt = getFeelDelta(rawDelta);
-    const st = stRef.current;
-
+    const gs = useGameStore.getState();
+    if (gone || !rootRef.current || !gs.hasStarted || gs.gameState !== 'playing' || useSettingsStore.getState().isPaused || useSceneEditorStore.getState().isEditMode) return;
+    const dt = getFeelDelta(rawDelta); const st = stRef.current;
     if (deadAt > 0) {
+      unregisterCollider(entityColId);
       if (telegraphRef.current) telegraphRef.current.visible = false;
-      const age = (performance.now() - deadAt) / 1000;
-      st.pos.addScaledVector(st.knockVel, dt);
-      st.knockVel.multiplyScalar(Math.max(0, 1 - dt * 4));
-      rootRef.current.position.copy(st.pos);
-      rootRef.current.rotation.x = Math.min(Math.PI * 0.48, age * 3.4);
+      const age = (performance.now() - deadAt) / 1000; st.pos.addScaledVector(st.knockVel, dt); st.knockVel.multiplyScalar(Math.max(0, 1 - dt * 4));
+      rootRef.current.position.copy(st.pos); rootRef.current.rotation.x = Math.min(Math.PI * 0.48, age * 3.4);
       if (age > 0.65) { setGone(true); onDefeat?.(); }
       return;
     }
 
     if (st.knockVel.lengthSq() > 0.01) {
-      st.pos.x += st.knockVel.x * dt;
-      st.pos.z += st.knockVel.z * dt;
+      st.pos.x += st.knockVel.x * dt; st.pos.z += st.knockVel.z * dt;
       st.knockVel.multiplyScalar(Math.max(0, 1 - dt * 9));
     }
-
     const p = motionBus.pos;
     const distPlayer = Math.hypot(p.x - st.pos.x, p.z - st.pos.z);
     if (behavior === 'boss' || distPlayer < spec.detect) soundEngine.setCombatIntensity(true);
     st.cooldown = Math.max(0, st.cooldown - dt);
-
     if (st.attackPhase === 'windup') {
       st.timer += dt;
       const prog = Math.min(1, st.timer / spec.windup);
@@ -106,24 +107,21 @@ export const SmartEntity = forwardRef(function SmartEntity(
       return;
     }
     if (telegraphRef.current) telegraphRef.current.visible = false;
-
-    let targetX = p.x; let targetZ = p.z; let moveSpd = spec.chaseSpeed; let nextAnim = 'Run';
+    let targetX = p.x; let targetZ = p.z; let moveSpd = rootRef.current.userData?.editSpeed ?? spec.chaseSpeed; let nextAnim = 'Run';
     if (behavior === 'ranged_turret') { moveSpd = 0; nextAnim = 'Idle'; }
     else if (distPlayer > spec.detect && behavior === 'patrol_chase') {
       const wp = route[st.wpIdx % route.length];
       targetX = wp[0]; targetZ = wp[2]; moveSpd = spec.speed; nextAnim = 'Walk';
       if (Math.hypot(targetX - st.pos.x, targetZ - st.pos.z) < 0.9) st.wpIdx += 1;
     }
-
     const steer = computeAvoidanceSteer(raycaster.current, scene, rootRef.current, st.pos, targetX, targetZ, distPlayer < spec.detect ? st.flank : 0, camera);
     if (distPlayer <= spec.attack && st.cooldown <= 0) { st.attackPhase = 'windup'; st.timer = 0; nextAnim = 'Attack'; }
     else if (moveSpd > 0 && distPlayer > spec.attack * 0.8) { st.pos.x += steer.dx * moveSpd * dt; st.pos.z += steer.dz * moveSpd * dt; }
-
     const targetYaw = Math.atan2(steer.dx, steer.dz);
     const diff = Math.atan2(Math.sin(targetYaw - st.yaw), Math.cos(targetYaw - st.yaw));
     st.yaw += diff * Math.min(1, dt * 8);
-    rootRef.current.position.copy(st.pos);
-    rootRef.current.rotation.y = st.yaw;
+    rootRef.current.position.copy(st.pos); rootRef.current.rotation.y = st.yaw;
+    if (solid !== false) registerCollider(entityColId, { x: st.pos.x, y: st.pos.y, z: st.pos.z, radius: 0.7 * scale * spec.scale + colliderPadding, maxY: st.pos.y + 2.4 * scale * spec.scale }, 'sphere');
     if (animRef.current !== nextAnim) { animRef.current = nextAnim; setAnim(nextAnim); }
   });
 

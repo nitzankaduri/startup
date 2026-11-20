@@ -22,6 +22,7 @@ export function RealisticTerrain({
   peakColor = '#EFECE4',
   position = [0, 0, 0],
   repeat = [14, 14],
+  wetness = 0,
 }) {
   const geometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(size, size, segments, segments);
@@ -53,37 +54,43 @@ export function RealisticTerrain({
     return geo;
   }, [size, segments, amplitude, frequency, flatRadius, flatColor, rockColor, peakColor]);
 
+  const rx = Array.isArray(repeat) ? (Number(repeat[0]) || 14) : (Number(repeat) || 14);
+  const ry = Array.isArray(repeat) ? (Number(repeat[1]) || 14) : (Number(repeat) || 14);
+  const wet = THREE.MathUtils.clamp(Number(wetness) || 0, 0, 1);
   const material = useMemo(() => {
-    const valleyTex = createPbrTextureSet(surface, { repeat });
-    const cliffTex = createPbrTextureSet(cliffSurface, { repeat });
+    const valleyTex = createPbrTextureSet(surface, { repeat: [rx, ry] });
+    const cliffTex = createPbrTextureSet(cliffSurface, { repeat: [rx, ry] });
     const mat = new THREE.MeshPhysicalMaterial({
       color: '#FFFFFF',
       map: valleyTex.map,
       normalMap: valleyTex.normalMap,
       roughnessMap: valleyTex.roughnessMap,
-      roughness: 0.86,
+      roughness: THREE.MathUtils.lerp(0.84, 0.74, wet),
       metalness: 0.03,
+      clearcoat: wet * 0.18,
+      clearcoatRoughness: 0.46,
       vertexColors: true,
     });
     mat.onBeforeCompile = (shader) => {
       shader.uniforms.uCliffNormal = { value: cliffTex.normalMap };
       shader.uniforms.uCliffRough = { value: cliffTex.roughnessMap };
+      shader.uniforms.uWetness = { value: wet };
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying float vTerrainBlend;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nfloat slopeW = smoothstep(0.08, 0.34, 1.0 - max(0.0, normal.y));\nvTerrainBlend = clamp(slopeW + smoothstep(6.0, 16.0, position.y) * 0.35, 0.0, 1.0);');
+        .replace('#include <common>', '#include <common>\nvarying float vTerrainBlend;\nvarying vec2 vTerrainXZ;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nfloat slopeW = smoothstep(0.08, 0.34, 1.0 - max(0.0, normal.y));\nvTerrainBlend = clamp(slopeW + smoothstep(6.0, 16.0, position.y) * 0.35, 0.0, 1.0);\nvTerrainXZ = position.xz;');
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying float vTerrainBlend;\nuniform sampler2D uCliffNormal;\nuniform sampler2D uCliffRough;')
+        .replace('#include <common>', '#include <common>\nvarying float vTerrainBlend;\nvarying vec2 vTerrainXZ;\nuniform sampler2D uCliffNormal;\nuniform sampler2D uCliffRough;\nuniform float uWetness;')
         .replace(
           'vec3 mapN = texture2D( normalMap, vNormalMapUv ).xyz * 2.0 - 1.0;',
           'vec3 mapN = mix(texture2D( normalMap, vNormalMapUv ).xyz, texture2D( uCliffNormal, vNormalMapUv ).xyz, vTerrainBlend) * 2.0 - 1.0;'
         )
         .replace(
           'vec4 texelRoughness = texture2D( roughnessMap, vRoughnessMapUv );',
-          'vec4 texelRoughness = mix(texture2D( roughnessMap, vRoughnessMapUv ), texture2D( uCliffRough, vRoughnessMapUv ), vTerrainBlend);'
+          'vec4 texelRoughness = mix(texture2D( roughnessMap, vRoughnessMapUv ), texture2D( uCliffRough, vRoughnessMapUv ), vTerrainBlend);\nfloat puddle = smoothstep(0.35, 0.72, sin(vTerrainXZ.x * 0.24) * cos(vTerrainXZ.y * 0.21)) * uWetness * (1.0 - vTerrainBlend);\ntexelRoughness.g = mix(texelRoughness.g, 0.72, puddle);'
         );
     };
     return mat;
-  }, [surface, cliffSurface, repeat[0], repeat[1]]);
+  }, [surface, cliffSurface, rx, ry, wet]);
 
   useEffect(() => () => { geometry.dispose(); material.dispose(); }, [geometry, material]);
 

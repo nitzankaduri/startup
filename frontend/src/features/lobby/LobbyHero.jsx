@@ -1,7 +1,7 @@
 import { HeroMeshBackground } from './HeroMeshBackground';
 import { PromptBar } from './PromptBar';
 
-export function LobbyHero({ prompt, setPrompt, onGenerate, isLoading, error, onClearError, inputRef }) {
+export function LobbyHero({ prompt, setPrompt, onGenerate, isLoading, buildStage, error, onClearError, inputRef }) {
   return (
     <section className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden px-6 pb-16">
       <HeroMeshBackground />
@@ -21,6 +21,7 @@ export function LobbyHero({ prompt, setPrompt, onGenerate, isLoading, error, onC
           setPrompt={setPrompt}
           onGenerate={onGenerate}
           isLoading={isLoading}
+          buildStage={buildStage}
           error={error}
           onClearError={onClearError}
           inputRef={inputRef}

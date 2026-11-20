@@ -1,11 +1,12 @@
 import { Component, Suspense, useEffect, useMemo, useRef } from 'react';
-import { ContactShadows, useAnimations, useGLTF } from '@react-three/drei';
+import { useAnimations, useGLTF } from '@react-three/drei';
+import { SoftShadowDecal } from './StudioProps';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { soundEngine } from '../../../../shared/audio/soundEngine';
 import { useGameStore } from '../../store/useGameStore';
-import { motionBus, setTargetFov } from '../spawnSdk';
+import { motionBus, setTargetFov } from '../motionBus';
 import { SmokeTrail } from '../SmokeTrail';
 import { resolveModelAsset } from './modelRegistry';
 import { computeNormalizedMetrics } from './normalizeModelMetrics';
@@ -43,7 +44,6 @@ function LoadedSkeletalActor({ asset, animationState = 'Idle', targetHeight, sca
   }, [scene, targetHeight, asset.targetHeight]);
 
   const { actions, names } = useAnimations(animations, groupRef);
-
   useEffect(() => {
     if (!names.length || !actions) return;
     const mapped = asset.clips?.[animationState] || animationState;
@@ -57,7 +57,6 @@ function LoadedSkeletalActor({ asset, animationState = 'Idle', targetHeight, sca
   }, [actions, names, animationState, asset]);
 
   useEffect(() => () => { Object.values(actions || {}).forEach((a) => a?.stop?.()); }, [actions]);
-
   useFrame(() => {
     const flashing = hitFlashAt > 0 && performance.now() - hitFlashAt < 120;
     for (let i = 0; i < matEntries.length; i += 1) {
@@ -127,10 +126,11 @@ export function SkeletalActor({
     }
   });
 
-  const fallback = <ProceduralAssetFallback kind={asset.fallbackKind} scale={scale} />;
+  const shadowScale = Array.isArray(scale) ? Math.max(...scale.map((n) => Math.abs(Number(n) || 1))) : (Number(scale) || 1);
+  const fallback = <ProceduralAssetFallback kind={asset.fallbackKind} scale={shadowScale} />;
   return (
     <group ref={rootRef} position={position} rotation={rotation}>
-      <ContactShadows position={[0, 0.02, 0]} opacity={0.42} scale={2.8 * scale} blur={1.8} far={2.4} frames={1} resolution={128} color="#181715" />
+      <SoftShadowDecal scale={2.4 * shadowScale} />
       {enableDash && (
         <>
           <SmokeTrail activeRef={dashSmokeRef} color="#E6DDD0" baseSize={0.34} maxSize={1.35} life={0.45} />

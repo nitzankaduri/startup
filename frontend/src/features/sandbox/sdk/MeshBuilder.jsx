@@ -24,9 +24,11 @@ const VARIANT_TO_SURFACE = {
 
 /** Memoized MeshPhysicalMaterial descriptor binding 512x512 albedo, normal, roughness & physical properties. */
 export function useStudioMaterial({ color = '#D96B27', variant = 'matte', surface, repeat = [1, 1], roughness, metalness, bumpScale, ...rest } = {}) {
+  const rx = Array.isArray(repeat) ? (Number(repeat[0]) || 1) : (Number(repeat) || 1);
+  const ry = Array.isArray(repeat) ? (Number(repeat[1]) || 1) : (Number(repeat) || 1);
   return useMemo(() => {
     const resolvedSurface = surface || VARIANT_TO_SURFACE[variant] || 'cracked_concrete';
-    const tex = createPbrTextureSet(resolvedSurface, { repeat });
+    const tex = createPbrTextureSet(resolvedSurface, { repeat: [rx, ry] });
     return {
       ...tex,
       color,
@@ -35,7 +37,7 @@ export function useStudioMaterial({ color = '#D96B27', variant = 'matte', surfac
       metalness: metalness ?? tex.metalness,
       ...rest,
     };
-  }, [color, variant, surface, repeat[0], repeat[1], roughness, metalness, bumpScale]);
+  }, [color, variant, surface, rx, ry, roughness, metalness, bumpScale]);
 }
 
 /** Beveled 2D-to-3D extruded polygon mesh built from [[x, y], ...] profile points. */

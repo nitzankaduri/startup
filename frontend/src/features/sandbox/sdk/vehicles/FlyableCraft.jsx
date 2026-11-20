@@ -1,34 +1,38 @@
-import { useRef } from 'react';
+import { forwardRef, useEffect, useRef } from 'react';
 import { RoundedBox } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { soundEngine } from '../../../../shared/audio/soundEngine';
+import { useGameStore } from '../../store/useGameStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { usePbrMaterial } from '../pbrMaterials';
 import { SmokeTrail } from '../SmokeTrail';
-import { motionBus, stepSpring } from '../spawnSdk';
+import { motionBus, stepSpring } from '../motionBus';
 import { useGameInput } from '../useGameInput';
 
 /** 6-DOF flight & hover rig with banking roll coupled to yaw turns, pitch climb/dive, thruster boost, and lead reticle. */
-export function FlyableCraft({
-  position = [0, 8, 0],
-  color = '#64748B',
-  cruiseSpeed = 16,
-  boostSpeed = 30,
-  minAltitude = 2.0,
-  maxAltitude = 38.0,
-  onTelemetry,
-  children,
-}) {
+export const FlyableCraft = forwardRef(function FlyableCraft({
+  position = [0, 8, 0], color = '#64748B', cruiseSpeed = 16, boostSpeed = 30,
+  minAltitude = 2.0, maxAltitude = 38.0, onTelemetry, children,
+}, fwdRef) {
   const { isPressed } = useGameInput();
   const rootRef = useRef(null);
+  const bindRoot = (el) => {
+    rootRef.current = el;
+    if (typeof fwdRef === 'function') fwdRef(el);
+    else if (fwdRef) fwdRef.current = el;
+  };
   const flameRef = useRef(null);
   const boostRef = useRef(false);
 
   const sim = useRef({ x: position[0], y: position[1], z: position[2], vx: 0, vy: 0, vz: 0, yaw: 0, pitch: 0, speed: cruiseSpeed * 0.6 });
   const roll = useRef({ value: 0, velocity: 0 });
   const hullMat = usePbrMaterial({ surface: 'brushed_steel', color });
+  useEffect(() => { rootRef.current?.position.set(position[0], position[1], position[2]); }, []);
 
   useFrame((_, rawDelta) => {
+    const gs = useGameStore.getState();
+    if (!gs.hasStarted || gs.gameState !== 'playing' || useSettingsStore.getState().isPaused) return;
     const dt = Math.min(0.05, Math.max(0.001, rawDelta));
     const s = sim.current;
     const pitchIn = (isPressed('KeyS') || isPressed('ArrowDown') ? 1 : 0) - (isPressed('KeyW') || isPressed('ArrowUp') ? 1 : 0);
@@ -78,7 +82,7 @@ export function FlyableCraft({
 
   return (
     <>
-      <group ref={rootRef} position={position}>
+      <group ref={bindRoot}>
         {children || (
           <>
             <RoundedBox args={[0.9, 0.55, 2.8]} radius={0.12} smoothness={3} castShadow><meshStandardMaterial {...hullMat} /></RoundedBox>
@@ -104,4 +108,4 @@ export function FlyableCraft({
       <SmokeTrail activeRef={boostRef} color="#E6DDD0" baseSize={0.35} maxSize={1.8} life={0.65} />
     </>
   );
-}
+});

@@ -33,6 +33,7 @@ export function TitleOverlay() {
   const pills = controlsHint ? controlsHint.split(/[·,]/).map((s) => s.trim()).filter(Boolean).slice(0, 4) : CONTROL_PILLS;
 
   const handlePlay = () => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     soundEngine.uiClick();
     soundEngine.startAmbient();
     startGame();

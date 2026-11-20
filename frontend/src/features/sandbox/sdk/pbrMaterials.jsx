@@ -1,24 +1,12 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { hash2, PBR_SURFACES, tileableFbm } from './pbrNoise';
+import { loadCdnImage, normRepeat, PBR_SURFACES, samplePbrPattern, tileableFbm } from './pbrNoise';
 
 export { PBR_SURFACES };
 
 const TEX_SIZE = 512;
 const SURFACE_CACHE = new Map();
-
-function samplePattern(mode, u, v, n1, n2, px, py) {
-  if (mode === 'streak') return tileableFbm(u * 0.5, v * 8, 8, 3, 21) * 0.75 + hash2(px, py, 7) * 0.25;
-  if (mode === 'wood') return 0.5 + 0.5 * Math.sin((u * 9 + n1 * 2.4) * Math.PI * 2) * 0.65 + n2 * 0.25;
-  if (mode === 'ripple') return 0.5 + 0.5 * Math.sin((u * 14 + v * 3 + n1 * 1.8) * Math.PI * 2) * 0.45 + n2 * 0.35;
-  if (mode === 'crack') return Math.min(1, Math.abs(n1 - 0.5) * 3.8) * 0.7 + n2 * 0.3;
-  if (mode === 'ridge') return (1 - Math.abs(n1 * 2 - 1)) * 0.72 + n2 * 0.28;
-  if (mode === 'grit' || mode === 'flake') return n1 * 0.55 + hash2(px, py, 99) * 0.45;
-  if (mode === 'puddle') return n1 > 0.6 ? 0.14 : 0.62 + n2 * 0.32;
-  if (mode === 'marble') return Math.pow(Math.abs(Math.sin((u * 4 + v * 2 + n1 * 3.2) * Math.PI)), 0.35);
-  if (mode === 'moss') return n1 > 0.57 ? 0.25 + n2 * 0.25 : 0.75 + n2 * 0.25;
-  return n1 * 0.7 + n2 * 0.3;
-}
+const TEXTURE_SET_CACHE = new Map();
 
 function makeCanvas(drawFn) {
   const canvas = document.createElement('canvas');
@@ -35,12 +23,11 @@ function buildBaseCanvases(surface) {
   const spec = PBR_SURFACES[surface] || PBR_SURFACES.cracked_concrete;
   const total = TEX_SIZE * TEX_SIZE;
   const hf = new Float32Array(total);
-
   for (let y = 0; y < TEX_SIZE; y += 1) {
     const v = y / TEX_SIZE;
     for (let x = 0; x < TEX_SIZE; x += 1) {
       const u = x / TEX_SIZE;
-      hf[y * TEX_SIZE + x] = samplePattern(spec.mode, u, v, tileableFbm(u, v, 8, 4, 101), tileableFbm(u, v, 16, 3, 503), x, y);
+      hf[y * TEX_SIZE + x] = samplePbrPattern(spec.mode, u, v, tileableFbm(u, v, 8, 4, 101), tileableFbm(u, v, 16, 3, 503), x, y);
     }
   }
 
@@ -78,9 +65,11 @@ function buildBaseCanvases(surface) {
   const roughCanvas = makeCanvas((d) => {
     for (let i = 0; i < total; i += 1) {
       const h = hf[i];
-      const rNorm = (spec.mode === 'puddle' || spec.mode === 'marble')
-        ? THREE.MathUtils.lerp(0.12, 0.85, h)
-        : spec.roughness * 0.7 + (1 - h) * 0.35;
+      const rNorm = spec.mode === 'marble'
+        ? THREE.MathUtils.lerp(0.22, 0.82, h)
+        : spec.mode === 'puddle'
+          ? THREE.MathUtils.lerp(0.72, 0.85, h)
+          : Math.max(0.72, spec.roughness * 0.78 + (1 - h) * 0.22);
       const rVal = Math.max(25, Math.min(255, rNorm * 255));
       const p = i * 4; d[p] = d[p + 1] = d[p + 2] = rVal; d[p + 3] = 255;
     }
@@ -91,52 +80,48 @@ function buildBaseCanvases(surface) {
   return result;
 }
 
-function wrapTex(canvas, repeat, srgb = false) {
+function wrapTex(canvas, repeat, srgb = false, cdnPath = null) {
+  const [rx, ry] = normRepeat(repeat);
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(repeat[0], repeat[1]);
+  tex.repeat.set(rx, ry);
   tex.anisotropy = 8;
   if (srgb) tex.colorSpace = THREE.SRGBColorSpace;
   tex.needsUpdate = true;
+  if (cdnPath) loadCdnImage(cdnPath, (img) => { tex.image = img; tex.anisotropy = 8; tex.needsUpdate = true; });
   return tex;
 }
 
-/** Synthesizes cached 512x512 seamless Albedo, Normal, and Roughness maps with Unity-grade physical attributes. */
+/** Synthesizes cached 512x512 seamless Albedo, Normal, and Roughness GPU TextureSets (+ async CDN maps) with anisotropy=8. */
 export function createPbrTextureSet(surface = 'cracked_concrete', { repeat = [1, 1] } = {}) {
+  const rep = normRepeat(repeat);
+  const cacheKey = `${surface}:${rep[0]}:${rep[1]}`;
+  if (TEXTURE_SET_CACHE.has(cacheKey)) return TEXTURE_SET_CACHE.get(cacheKey);
   const { albedoCanvas, normalCanvas, roughCanvas, spec } = buildBaseCanvases(surface);
-  const normalMap = wrapTex(normalCanvas, repeat, false);
-  return {
-    map: wrapTex(albedoCanvas, repeat, true),
-    normalMap,
-    bumpMap: normalMap,
-    roughnessMap: wrapTex(roughCanvas, repeat, false),
-    bumpScale: spec.bumpScale,
-    roughness: spec.roughness,
-    metalness: spec.metalness,
+  const [cdnDiff, cdnBump, cdnRough] = spec.cdn || [];
+  const normalMap = wrapTex(normalCanvas, rep, false, cdnBump);
+  const texSet = {
+    map: wrapTex(albedoCanvas, rep, true, cdnDiff), normalMap, bumpMap: normalMap, roughnessMap: wrapTex(roughCanvas, rep, false, cdnRough),
+    bumpScale: spec.bumpScale, roughness: spec.roughness, metalness: spec.metalness,
     ...(spec.clearcoat ? { clearcoat: spec.clearcoat, clearcoatRoughness: spec.clearcoatRoughness } : {}),
     ...(spec.transmission ? { transmission: spec.transmission, ior: spec.ior, thickness: spec.thickness, transparent: true } : {}),
     ...(spec.sheen ? { sheen: spec.sheen, sheenColor: spec.sheenColor, sheenRoughness: spec.sheenRoughness } : {}),
   };
+  TEXTURE_SET_CACHE.set(cacheKey, texSet);
+  return texSet;
 }
 
 export function createPhysicalMaterial(surface = 'cracked_concrete', options = {}) {
   const { repeat = [1, 1], color = '#FFFFFF', ...rest } = options;
-  const props = createPbrTextureSet(surface, { repeat });
-  return new THREE.MeshPhysicalMaterial({ ...props, color, ...rest });
+  return new THREE.MeshPhysicalMaterial({ ...createPbrTextureSet(surface, { repeat: normRepeat(repeat) }), color, ...rest });
 }
 
 export function usePbrMaterial({ surface = 'cracked_concrete', repeat = [1, 1], color = '#FFFFFF', roughness, metalness, bumpScale, ...rest } = {}) {
+  const [rx, ry] = normRepeat(repeat);
   return useMemo(() => {
-    const tex = createPbrTextureSet(surface, { repeat });
-    return {
-      ...tex,
-      color,
-      roughness: roughness ?? tex.roughness,
-      metalness: metalness ?? tex.metalness,
-      bumpScale: bumpScale ?? tex.bumpScale,
-      ...rest,
-    };
-  }, [surface, repeat[0], repeat[1], color, roughness, metalness, bumpScale]);
+    const tex = createPbrTextureSet(surface, { repeat: [rx, ry] });
+    return { ...tex, color, roughness: roughness ?? tex.roughness, metalness: metalness ?? tex.metalness, bumpScale: bumpScale ?? tex.bumpScale, ...rest };
+  }, [surface, rx, ry, color, roughness, metalness, bumpScale]);
 }
 
 export const pbrMaterials = {

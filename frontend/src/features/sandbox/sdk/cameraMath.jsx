@@ -1,6 +1,30 @@
 import * as THREE from 'three';
 
 const TMP_DIR = new THREE.Vector3();
+const TMP_WORLD = new THREE.Vector3();
+
+/** Resolves any camera target (function, React ref, THREE.Object3D, [x,y,z], or {x,y,z}) into finite {x,y,z}. */
+export function resolveCameraTarget(raw, fallback) {
+  let t = typeof raw === 'function' ? raw() : raw;
+  if (t && typeof t === 'object' && 'current' in t) t = t.current;
+  if (!t) return { pos: fallback, hasCustom: false };
+  if (t.isObject3D && typeof t.getWorldPosition === 'function') {
+    t.getWorldPosition(TMP_WORLD);
+    if (Number.isFinite(TMP_WORLD.x) && Number.isFinite(TMP_WORLD.y) && Number.isFinite(TMP_WORLD.z)) {
+      return { pos: { x: TMP_WORLD.x, y: TMP_WORLD.y, z: TMP_WORLD.z }, hasCustom: true };
+    }
+  }
+  if (t.position && Number.isFinite(t.position.x)) {
+    return { pos: { x: t.position.x, y: t.position.y, z: t.position.z }, hasCustom: true };
+  }
+  if (Array.isArray(t) && t.length >= 3 && Number.isFinite(t[0]) && Number.isFinite(t[1]) && Number.isFinite(t[2])) {
+    return { pos: { x: t[0], y: t[1], z: t[2] }, hasCustom: true };
+  }
+  if (typeof t === 'object' && Number.isFinite(t.x) && Number.isFinite(t.y) && Number.isFinite(t.z)) {
+    return { pos: { x: t.x, y: t.y, z: t.z }, hasCustom: true };
+  }
+  return { pos: fallback, hasCustom: false };
+}
 
 /** Critically-damped spring interpolation (smoothDamp) returning updated scalar value. */
 export function smoothDamp(current, target, velObj, key, smoothTime, dt, maxSpeed = 80) {
@@ -43,7 +67,7 @@ export function avoidCameraCollision(raycaster, scene, origin, desiredPos, minFl
     raycaster.far = dist;
     const targets = camera ? scene.children : scene.children.filter((c) => !c.isSprite);
     const hits = raycaster.intersectObjects(targets, true);
-    const blocker = hits.find((h) => h.object?.isMesh && h.object.visible && h.object.material?.transparent !== true && h.distance > 0.6);
+    const blocker = hits.find((h) => h.object?.isMesh && !h.object.isInstancedMesh && h.object.visible && h.object.material?.transparent !== true && h.distance > 0.6);
     if (blocker && blocker.distance < dist) {
       const safeDist = Math.max(1.2, blocker.distance - 0.35);
       desiredPos.copy(origin).addScaledVector(TMP_DIR, safeDist);

@@ -37,7 +37,7 @@ export function HUDModeWidgets({ gameMode }) {
           <div key={m.id || m.label || idx} className="flex items-center gap-3">
             {idx > 0 && <span className={DIV} />}
             <span className={`text-xs font-medium tabular-nums ${MUTED}`}>
-              {m.label}: <strong className={`font-semibold ${TXT}`}>{m.value}</strong>
+              {typeof m.label === 'object' ? '' : m.label}: <strong className={`font-semibold ${TXT}`}>{typeof m.value === 'object' ? '' : m.value}</strong>
             </span>
           </div>
         ))}

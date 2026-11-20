@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { soundEngine } from '../../../../shared/audio/soundEngine';
-import { addImpactTrauma, getFeelDelta, triggerHitStop } from '../spawnSdk';
+import { getFeelDelta, triggerHitStop } from '../gameFeel';
+import { addImpactTrauma } from '../motionBus';
 
 const DEBRIS_COUNT = 10;
 const SMOKE_COUNT = 8;

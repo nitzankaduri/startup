@@ -1,5 +1,176 @@
 # Changelog
 
+## [0.85.1] - 2026-11-20
+### Fixed
+- **Root-Level `registerHud(React.createElement)` Crash & Circular Store Guard (`useGameStore.jsx`, `HUDModeWidgets.jsx`, `SkeletalActor.jsx`, `ProceduralAssetFallbacks.jsx`, `DynamicGameRunner.jsx`, `code_validator.py`, `prompts.py`):**
+  - Prevented AI-generated `registerHud(React.createElement('div', ...))` payloads from decomposing React fiber objects into `customMeters` and crashing top-level `HUDModeWidgets` with `Objects are not valid as a React child`, and added equality checks to block `useEffect([missionState])` render loops.
+  - Replaced `<ContactShadows>` inside `SkeletalActor.jsx` with shared `SoftShadowDecal`, set `solid={false}` on `ProceduralAssetFallbacks`, avoided duplicate `<StudioBackdrop />` when scenes mount `<BiomeStage />`, and added `registerHud(React.createElement|JSX)` rejection in `code_validator.py`.
+
+## [0.85.0] - 2026-11-20
+### Fixed
+- **Resolved "Screen Stuck" Runtime Freeze, WebGL VRAM/FBO Overload & R3F DOM Crashes (`pbrMaterials.jsx`, `StudioProps.jsx`, `AutoNormalizeMesh.jsx`, `compileGameCode.jsx`, `motionBus.jsx`, `code_validator.py`):**
+  - **GPU Texture Set Caching (`TEXTURE_SET_CACHE` in `pbrMaterials.jsx`):** Cached synthesized `THREE.CanvasTexture` sets by `(surface, rx, ry)`, preventing `<CityGrid />` (`64` skyscrapers + `32` lamps) from allocating ~480 duplicate `512×512` GPU textures (~500 MB VRAM spike) on frame 1.
+  - **Zero-FBO Prop Ground Shadows (`SoftShadowDecal` in `StudioProps.jsx` & `AutoNormalizeMesh.jsx`):** Replaced per-prop `<ContactShadows>` FBO render targets (~100 full-scene shadow passes on frame 1 in city worlds) with one shared `64×64` radial gradient decal texture, reserving true `<ContactShadows>` for the player/hero rig (`BiomeStage` / `SceneEnvironment`).
+  - **R3F DOM Crash Guard (`SafeHtml` + `SafeCanvasDom` in `compileGameCode.jsx` & `code_validator.py`):** Safely neutralized stray HTML tags (`<div>`, `<span>`, `<button>`) rendered directly inside Three.js `<Canvas>` outside `<Html>` so `R3F: Div is not part of the THREE namespace` can never freeze/crash scenes, and added backend validation + `fix_generated_code` self-repair for raw Canvas DOM tags.
+  - **Zero Circular SDK Imports (`motionBus.jsx`):** Extracted `motionBus` and spring/motion helpers into a zero-dependency leaf module imported across SDK submodules, eliminating Vite circular-import HMR reloads and initialization races.
+
+## [0.84.0] - 2026-11-20
+### Added
+- **Road-Aware Spatial Layouts, Terrain Grounding & Strict Objective Loop (`backend/game_architect.py`, `backend/ai_service.py`, `backend/prompts.py`, `useMissionState.jsx`):**
+  - Updated Stage 1 Blueprint & Stage 2 synthesis rules to enforce `<CityGrid />` / `<RaceTrack />` with `flatGround={true}` for driving, racing, heist, police-chase, and urban prompts (aligning spawn points, checkpoints, pickups, and patrolling AI cars along exact road centerlines `[-100, -50, 0, 50, 100]` outside building footprints) and `getTerrainHeight(x, z)` placement on terrain worlds.
+  - Enforced mandatory `<ObjectiveBeacon />` directional waypoints, active steering AI opponents (`SmartEntity` or road-patrolling cruisers/rivals), and functional win/lose triggers (`targetScore` / `onVictory` / `onDefeat` wired into `useMissionState.jsx`).
+
+## [0.83.0] - 2026-11-20
+### Fixed
+- **Balanced Midnight Lighting & Damp-Satin Asphalt Materials (`SceneEnvironment.jsx`, `BiomeStage.jsx`, `weatherPresets.jsx`, `pbrMaterials.jsx`, `pbrNoise.jsx`, `RealisticTerrain.jsx`, `worldTextures.jsx`):**
+  - Replaced mirror-gloss wet roughness (`0.09–0.34`) with damp-satin roughness (`0.72–0.85`) and restrained clearcoat (`0.16–0.18`, `clearcoatRoughness: 0.46`) across road textures, terrain rain puddles, and `wet_asphalt`.
+  - Added a soft moonlight hemisphere fill (`#4A5D7A` sky / `#2A2622` ground, `intensity: 0.65`) for twilight/midnight scenes so street edges, curbs, buildings, and obstacles read clearly in dark lighting.
+- **Production Vehicle Dynamics & Twin SpotLight Headlights (`VehicleHeadlights.jsx`, `ArcadeCarVisual.jsx`, `DrivableVehicle.jsx`, `PlayerController.jsx`, `runtimeRigHelpers.jsx`):**
+  - Created `VehicleHeadlights.jsx` mounting twin bumper `<spotLight>` beams (`#FFF3D6`, `distance={52}`) with vehicle-parented targets + warm flickering nitro exhaust flame cones (`#F97316` / `#FDE68A`).
+  - Upgraded both `PlayerController` (`preset="arcade_vehicle"` via `ArcadeCarVisual.jsx`) and `DrivableVehicle.jsx` with steering & spinning front wheels, intensified brake/reverse taillights (`2.5` emissive), `Space` handbrake drift + `<SkidMarks>`, and `Shift` nitro surge + flames.
+
+## [0.82.0] - 2026-11-20
+### Added
+- **Urban Street Grid & Banked Race-Track Generator (`sdk/world/CityRoadBuilder.jsx`, `raceTrackHelpers.jsx`, `BiomeStage.jsx`, `spawnSdk.jsx`, `compileGameCode.jsx`, `backend/validator_constants.py`, `backend/prompts.py`):**
+  - Created `<CityGrid blocks={4} roadWidth={14} blockSize={36} />` rendering flat asphalt avenues with dashed centerlines (`createCityRoadTextures`), raised concrete sidewalks (`+0.25m`), intersection warm streetlamps, and aligned solid block buildings (`StudioProp`), leaving every street 100% clear for driving.
+  - Created `<RaceTrack waypoints={...} width={16} onCheckpoint={...} />` (`buildRaceTrackGeometry`) building a continuous banked CatmullRom road ribbon with red/white safety curbs, continuous overlapping solid barrier colliders, and trigger checkpoint gates.
+  - Added `flatGround` and `mode` (`city` | `racing` | `arena` | `exploration`) to `<BiomeStage>`, defaulting `flatGround={true}` (`amplitude={0}` + road-clearing `flatRadius` + suppressed central foliage) for city/racing/arena modes so hills never poke through roads or bury props.
+
+## [0.81.0] - 2026-11-20
+### Fixed
+- **Solid Prop/Building Collision Enforcement & Wall-Sliding Physics (`useArenaPhysics.jsx`, `StudioProps.jsx`, `AutoNormalizeMesh.jsx`, `assetCatalog.jsx`, `SmartEntity.jsx`, `CityBlockWorld.jsx`, `PlayerController.jsx`, `runtimeRigHelpers.jsx`, `DrivableVehicle.jsx`):**
+  - Added `registerObjectCollider` in `useArenaPhysics.jsx` to measure world-space `THREE.Box3` bounds automatically on mount/transform for every solid `<StudioProp>`, `<AssetCatalog>` / `<AutoNormalizeMesh>`, live `<SmartEntity>`, and all 64 `<CityBlockWorld>` buildings (explicitly skipping solid blocking on `solid={false}` pickups, coins, checkpoints, and grass).
+  - Upgraded `resolveMovement(pos, radius, velocity, onCollide)` to a 2-pass iterative solver with nearest-face AABB push-out (smooth wall sliding without getting stuck or passing through), inward velocity damping on impact, and high-speed collision callbacks (`onCollide(other, impactSpeed)` + `setHardCollisionHandler` triggering `triggerCameraShake`, warm spark bursts, and impact sound).
+  - Wired `<DrivableVehicle>` (`resolveMovement`, radius `1.25`) and `<PlayerController>` (`onCollide`) into the arena physics solver so cars and players bounce, slide, shake, and emit sparks instead of clipping through buildings or obstacles.
+
+## [0.80.0] - 2026-11-20
+### Added
+- **Final Visual Polish Pass — High-Res PBR Maps, Hero Rim Lighting & 2s Poster Snapshot (`pbrMaterials.jsx`, `pbrNoise.jsx`, `SceneEnvironment.jsx`, `BiomeStage.jsx`, `ThumbnailCapturer.jsx`, `SandboxViewport.jsx`):**
+  - Expanded `PBR_SURFACES` to 18 physical presets (`stone_bricks`, `grass_turf`, `wood_planks`, `sand_ripples`, `brushed_alloy`, etc.) with crisp brick mortar grooves, turf tufts, wood plank seams, `anisotropy = 8`, and async hydration of verified Three.js `r169` diffuse/bump/roughness maps (`brick_*`, `hardwood2_*`, `terrain/grasslight-big.jpg`).
+  - Added player-tracking cool-sky **hero silhouette rim directional light** (`#BCE3FF` / `#93C5FD`) and soft ground `<ContactShadows>` (`resolution={128}`) underneath dynamic actors in both `SceneEnvironment.jsx` and `BiomeStage.jsx`.
+  - Updated `ThumbnailCapturer.jsx` & `SandboxViewport.jsx` to auto-capture a clean HUD-free WebGL poster snapshot (`image/webp`, quality `0.86`) **2 seconds after gameplay starts** (`hasStarted && gameState === 'playing'`) and sync it to the Lobby gallery.
+
+## [0.79.0] - 2026-11-20
+### Added
+- **1-Click Commercial Publishing, Website Embed & Standalone Export (`PublishModal.jsx`, `publishHelpers.jsx`, `useSceneEditorStore.jsx`, `GameHUD.jsx`, `App.jsx`):**
+  - Added a prominent **"Publish & Export"** header CTA in `GameHUD.jsx` opening `PublishModal.jsx` with 3 tabs:
+    - **Share Link:** Public `/play/{game_id}` link copy, direct open link, and deterministic editorial SVG QR/social preview card (`buildQrCells`).
+    - **Website Embed (`<iframe>`):** Copyable responsive 16:9 or custom Width×Height `<iframe>` snippet with an interactive **"Hide Spawn.gg Watermark (Pro)"** toggle (`?embed=1&watermark=0`).
+    - **Playable Build:** Generates and downloads a standalone `<slug>-playable.html` file containing the serialized `game_config` bundle (`window.__SPAWN_GAME_BUNDLE__`), HUD, and embedded Three.js player loader (`buildStandaloneHtml`).
+
+## [0.78.0] - 2026-11-20
+### Added
+- **Interactive "Edit Mode" Toggle & 3D Scene Inspector (`SceneInspector.jsx`, `SandboxEditorRig.jsx`, `sceneEditUtils.jsx`, `useSceneEditorStore.jsx`, `GameHUD.jsx`, `GameCanvas.jsx`, `App.jsx`):**
+  - Wired an **"Edit World" / "Play"** toggle button in `GameHUD.jsx` that freezes gameplay simulation (`useSafeFrame`, `useGameLoop`, `SmartEntity`, Rapier `<Physics>`) and enables free `OrbitControls` inspection + click-to-select 3D raycasting (`SandboxEditorRig.jsx`) with a subtle warm terracotta/ivory base selection ring (`#D96B27` / `#F6F4EF`).
+  - Added right-docked floating **`SceneInspector.jsx`** providing real-time `Scale` (`0.3x–3.5x`), `Rotation Y` (`-180°–180°`), `Speed` & `HP` tuning for entities/player rigs (`SmartEntity.jsx`, `PlayerController.jsx`), curated warm material color swatches (`SWATCH_PALETTE`), and **`Duplicate`** (`SkeletonUtils.clone` + collider registration) / **`Delete`** actions.
+  - Toggling back to **`Play`** resumes full gameplay seamlessly without resetting transforms or updated stats.
+
+## [0.77.0] - 2026-11-20
+### Added
+- **40+ Multi-Genre 3D Studio Asset Library (`sdk/assets/`, `validator_constants.py`, `game_architect.py`, `prompts.py`, `spawnSdk.jsx`):**
+  - Expanded `assetCatalog.jsx` + `StudioProps.jsx` with 4 categorized multi-mesh PBR packs alongside verified GLBs (`ASSET_MANIFEST`):
+    - **Sci-Fi & Space (`scifiProps.jsx` + `studioPropParts.jsx`):** `starfighter`, `planetary_rover`, `laser_turret`, `cryo_pod`, `orbital_ring_gate`, `asteroid_cluster`, `helmet`, `crate`.
+    - **Fantasy & Medieval (`fantasyProps.jsx`):** `knight_hero`, `goblin_enemy`, `skeleton_enemy`, `castle_keep`, `timber_tavern`, `crystal_shrine`, `catapult`, `treasure_chest`.
+    - **Modern & Racing (`modernProps.jsx`):** `supercar`, `offroad_buggy`, `police_cruiser`, `truck`, `buggy`, `streetlamp`, `concrete_barrier`, `suspension_bridge`, `skyscraper_block`, `tokyo`.
+    - **Nature & Survival (`natureProps.jsx`):** `pine_tree`, `palm_tree`, `stylized_oak`, `boulder`, `wooden_dock`, `campfire` (with animated flames & warm flickering `<pointLight>`), `ruins_pillar`.
+  - Exposed the full `CATALOG_MANIFEST` to Stage 1 (`game_architect.py`) and Stage 2 (`prompts.py`) so every generated scene composes 15–30 grounded props and landmarks.
+
+## [0.76.0] - 2026-11-20
+### Added
+- **Cinematic GPU Weather, Puddle Reflections & Dynamic Time-of-Day (`sdk/atmosphere/`, `BiomeStage.jsx`, `RealisticTerrain.jsx`, `AtmosphereRig.jsx`, `backend/game_architect.py`, `backend/ai_service.py`):**
+  - Created `sdk/atmosphere/WeatherSystem.jsx` + `weatherPresets.jsx` supporting camera-frustum-wrapping `rain` (tilted `InstancedMesh` streaks), `snow`, rising `embers`, horizontal `sandstorm`, and pulsing `fireflies` (`Points` + radial sprite texture) at 60 FPS with zero per-frame allocations.
+  - Added rain puddle specular & clearcoat boost (`wetness` uniform + procedural puddle patch roughness modulation) in `RealisticTerrain.jsx` when `weather="rain"`.
+  - Created `sdk/atmosphere/PracticalLights.jsx` placing terrain-grounded warm iron lantern posts and subtly flickering point lights (`#FDBA74`, zero neon) during `midnight` and `golden_hour`.
+  - Added `timeOfDay="dawn" | "noon" | "golden_hour" | "midnight"` + `weather` + `weatherIntensity` props to `<BiomeStage>`, adjusting sky dome angle (`AtmosphereRig` `skySunPos`), horizon tint, fog density, directional shadows, and practical lighting.
+  - Updated Stage 1 Blueprint (`blueprint_schemas.py`, `game_architect.py`) and Stage 2 prompts (`prompts.py`, `ai_service.py`) so the AI automatically picks optimal `weather` + `time_of_day` pairs per prompt and exposed `WeatherSystem` / `PracticalLights` across `spawnSdk.jsx`, `compileGameCode.jsx`, and `validator_constants.py`.
+
+## [0.75.0] - 2026-11-20
+### Added
+- **Verified Iterative Game Creation Engine & Studio Co-Pilot (`backend/code_validator.py`, `backend/validator_constants.py`, `backend/ai_service.py`, `backend/game_architect.py`, `backend/stream_routes.py`, `backend/database.py`, `StudioCopilotBar.jsx`, `gameApi.jsx`, `App.jsx`):**
+  - Upgraded **Stage 1 Blueprint** (`blueprint_schemas.py`, `game_architect.py`) to explicitly select `biome_stage_theme` (`BiomeStage`), `player_controller_preset` (`PlayerController`), and `3+` `studio_entities` (`StudioProp` / `AssetCatalog` `.glb` assets) per prompt.
+  - Created **Pre-Flight Code Validator** (`code_validator.py` + `validator_constants.py`) checking balanced braces/JSX tags, valid `spawnSdk` symbol usage, win/lose condition presence (`onWin`/`onGameOver`/`triggerVictory`/`triggerDefeat`/`completeObjective`), and banning React `setState` calls inside `useFrame`/`useGameLoop`, wired with automatic fast Python self-repair (`_repair_if_invalid`) in both generation and refinement paths.
+  - Added **`POST /api/games/refine`** (`stream_routes.py`, `ai_service.py`, `database.py`) accepting `{ current_code, refinement_prompt, game_title, game_id }`, preserving working mechanics while applying user-requested upgrades and persisting updated code.
+  - Added collapsible **`StudioCopilotBar.jsx`** inside the active game view (`App.jsx` + `refineGame` in `gameApi.jsx`) using the Warm Beige / Midnight Slate `#D96B27` design system with quick-prompt chips and live hot-swap recompilation.
+
+## [0.74.0] - 2026-11-20
+### Added
+- **Deterministic Gameplay Runtime (`sdk/runtime/`, `BiomeStage.jsx`, `GameCanvas.jsx`, `spawnSdk.jsx`, `compileGameCode.jsx`, `backend/prompts.py`):**
+  - Created `useArenaPhysics.jsx` providing `registerCollider`, `unregisterCollider`, `resolveMovement` (circle & AABB wall sliding + arena bounds), and deterministic `getTerrainHeight(x, z)` synced automatically to `<BiomeStage>`.
+  - Created `PlayerController.jsx` + `runtimeRigHelpers.jsx` with 4 responsive presets: `third_person_action` (camera-relative WASD, 130ms coyote jump, Shift dash, click/F attack, `SkeletalActor` animation blending), `arcade_vehicle` (drive/steer, Space handbrake drift, Shift nitro, auto-upright recovery, terrain snapping), `flight_shooter` (pitch/yaw/roll banking, twin `<ProjectilePool>` cannons, auto-level assist, terrain floor clamp), and `tactical_isometric` (WASD + click-to-move waypoint, ground cursor targeting ring, ability cast).
+  - Created `useMissionState.jsx` managing `phase` (`ready` -> `playing` -> `victory` | `defeat`), `score`, `hp`, `wave`, `objectivesCompleted`, `combo`, and automatic HUD/leaderboard/restart sync.
+  - Created `GameRuntimeKit.jsx` barrel + `<ColliderBox>` & `<GameRuntimeProvider>`, exposed across `spawnSdk.jsx`, `compileGameCode.jsx`, and `backend/prompts.py`.
+
+## [0.73.0] - 2026-11-20
+### Added
+- **Replaced SDK Asset & Biome World Layer (`sdk/assets/`, `spawnSdk.jsx`, `compileGameCode.jsx`, `backend/prompts.py`):**
+  - Created `assetCatalog.jsx` + `AutoNormalizeMesh.jsx` providing a CORS-verified catalog of 11 real `.glb` assets (`RobotExpressive`, `Soldier`, `Fox`, `CesiumMilkTruck`, `Buggy`, `DamagedHelmet`, `Flamingo`, `Parrot`, `Horse`, `LittlestTokyo`, `CesiumMan`) with fixed `Buggy.glb` URL, `THREE.Box3` ground normalization (`y=0`), crossfaded animations, and `<ContactShadows>`.
+  - Created `StudioProps.jsx` + `studioPropParts.jsx` rendering multi-part beveled/lathed/extruded PBR props (`tower`, `turret`, `sports_car`, `pine_tree`, `boulder`, `spaceship`, `treasure_chest`, `crate`) so zero props fall back to bare cubes/spheres.
+  - Created `BiomeStage.jsx` + `biomePresets.jsx` offering 6 instant AAA visual themes (`sunset_canyon`, `alpine_meadow`, `cyber_dusk`, `tropical_archipelago`, `lunar_crater`, `obsidian_fortress`) combining high-detail PBR terrain (`segments={160}`, `repeat={[18,18]}`), multi-light `<Environment>` IBL, directional shadows, horizon fog, `<DynamicWater>`, and `<InstancedFoliage>`.
+  - Exposed `StudioProp`, `BiomeStage`, `AssetCatalog`, and `AutoNormalizeMesh` in `spawnSdk.jsx`, `compileGameCode.jsx`, and `backend/prompts.py`.
+
+## [0.72.0] - 2026-11-20
+### Added
+- **Two-Stage Deep AI Synthesis Pipeline (`backend/game_architect.py`, `backend/blueprint_schemas.py`, `backend/ai_service.py`, `backend/stream_routes.py`, `backend/prompts.py`, `backend/schemas.py`):**
+  - **Stage 1 (`design_game_blueprint`, `thinking_budget: 8192`):** Produces a bespoke `GameBlueprint` dissecting `genre_and_camera`, at least 3 prompt-specific `unique_core_mechanics`, articulated `visual_art_direction` recipes, and `rules_and_progression` before code synthesis.
+  - **Stage 2 (`generate_game_config`, `thinking_budget: 16384`, `max_output_tokens: 24576`, `temperature: 0.85`):** Synthesizes complete multi-system R3F `.jsx` worlds honoring 100% of the Stage 1 Blueprint, enforcing articulated multi-part `<group>` hierarchies, `60 FPS` ref physics, real collisions, and strictly zero neon colors.
+  - Added `POST /api/generate-stream` SSE endpoint streaming real-time 3-step synthesis progress.
+- **Studio-Grade Rendering, Tactile SDK & Build Progress UI (`PostFX.jsx`, `SceneEnvironment.jsx`, `gameFeel.jsx`, `HealthBar3D.jsx`, `spawnSdk.jsx`, `compileGameCode.jsx`, `gameApi.jsx`, `BuildProgressPill.jsx`, `PromptBar.jsx`, `App.jsx`):**
+  - Enabled crash-proof `PostFX.jsx` (`PostFXBoundary` + `<EffectComposer multisampling={0} enableNormalPass={false}>`, `<Bloom mipmapBlur />`, `<ToneMapping mode={ToneMappingMode.ACES_FILMIC} />`) and tightened `SceneEnvironment.jsx` `2048px` shadows (`[-32, 32]`) + warm/cool studio `<Environment>` reflections.
+  - Added `useGameLoop` (dt clamping <= `0.05s` + automatic pause on PauseMenu / UpgradeModal / pre-start) and warm-editorial `<HealthBar3D>` world-space meters into `spawnSdk.jsx` & `compileGameCode.jsx`.
+  - Added warm-editorial `BuildProgressPill.jsx` displaying live `"1/3 Designing game rules & mechanics..."` -> `"2/3 Sculpting 3D world & physics..."` -> `"3/3 Compiling & launching..."` progress in `PromptBar.jsx`.
+
+## [0.71.0] - 2026-11-20
+### Fixed
+- **Rock-Solid Cross-Layout Movement & Arrow Controls (`useGameInput.jsx`, `DrivableVehicle.jsx`, `FlyableCraft.jsx`, `GameCanvas.jsx`, `TitleOverlay.jsx`):**
+  - Replaced per-hook listeners with a singleton capture-phase global keyboard state (`globalKeys`) mapping physical `e.code` aliases (`KeyW`/`KeyA`/`KeyS`/`KeyD`/`Arrow*`/`Space`/`Shift*`) so WASD and Arrows respond instantaneously on every keyboard layout (including Hebrew/non-Latin macOS layouts) and can never be swallowed by focused HUD buttons.
+  - Fixed `DrivableVehicle` & `FlyableCraft` JSX `position={position}` snapping back to `[0,0,0]` on parent re-renders, enabled low-speed steering (`Math.max(0.45, speedFactor)`), reset `useSettingsStore.isPaused` to `false` on every `runId`, and blurred active buttons on `TitleOverlay` PLAY click.
+
+### Added
+- **Unicorn Subway-Surfers Graphics & Motion Overhaul (`propTextures.jsx`, `StylizedTrain.jsx`, `StylizedObstacles.jsx`, `SubwayCorridor.jsx`, `corridorBanners.jsx`, `ArticulatedRunner.jsx`, `StudioBackdrop.jsx`):**
+  - Created `propTextures.jsx` with procedural 512x256 diagonal red-and-white chevron barrier textures, 256x256 embossed 5-point golden star coin albedo+bump maps, and louvered metro train roof textures.
+  - Upgraded `StylizedTrain` (golden-ochre cab, burgundy skirt, cream pinstripe, louvered slate roof, sky-blue windshields, Cyclops + twin headlights, ruby nose lamp), `LowHurdleProp` / `HighBarrierProp` (chevron boards + glowing beacons), and `StylizedCoinProp` (embossed spinning star coins).
+  - Upgraded `SubwayCorridor` & `corridorBanners.jsx` with rose-sandstone sunlit ballast, gleaming clearcoat steel rails, arched vibrant facades, wind-swaying festival pennants & ribbons, striped station arches, and colorful market spice bowls.
+  - Upgraded `ArticulatedRunner` with jump stretch, landing squash, auto-detected lateral banking lean (`±24°`), head look-into-turn, altitude-scaled drop shadow, and jump/land foley; brightened `StudioBackdrop` to Pixar/Subway-Surfers golden-hour lighting (`exposure: 1.15`, `sunIntensity: 2.75`, warm coral bounce).
+
+## [0.70.1] - 2026-11-20
+### Fixed
+- **Compiler & Self-Healing Hardening (`compileGameCode.jsx`, `DynamicGameRunner.jsx`, `DrivableVehicle.jsx`, `FlyableCraft.jsx`, `gameFeel.jsx`):**
+  - Sanitized stray `#` tuple syntax (`#[`, `#{`) and markdown code fences in `compileGameCode.jsx` (`prepareSource`), fixing Safari `SyntaxError: Invalid character: '#'`.
+  - Replaced `healing` state with `healingRef` in `DynamicGameRunner.jsx` so `useEffect` no longer immediately triggers `onFatalError` while `POST /api/fix-code` is still running.
+  - Wrapped `DrivableVehicle` and `FlyableCraft` in `forwardRef` so `vehicleRef.current.position` works for coin/objective checks, and accepted `THREE.Vector3` / `{x,y,z}` in `spawnFloatingNumber`.
+
+## [0.70.0] - 2026-11-20
+### Fixed
+- **48× Generation Speedup (`backend/ai_service.py`, `backend/ai_helpers.py`):**
+  - Diagnosed 4–5 minute hangs (`504 DEADLINE_EXCEEDED` on `gemini-3.8`/`3.7`/`3.6-flash` and `429` quota limits on `gemini-3.5-flash`).
+  - Switched primary synthesis model to `gemini-3.5-flash-lite` (with fast failover to `gemini-3.1-flash-lite` and `gemini-3.5-flash`), dropped slow `response_schema` grammar compilation & thinking overhead in favor of `response_mime_type="application/json"` + `json_repair` + `sanitize_raw_config` (`backend/ai_helpers.py`), and lowered per-attempt timeout from `95s` to `28s`, cutting live 3D game generation from minutes down to **~5–7 seconds**.
+
+## [0.69.0] - 2026-11-20
+### Added
+- **Unity-Grade 3D World & Character Prefab Kits (`sdk/worlds/`, `sdk/assets/ArticulatedRunner.jsx`, `sdk/props/`):**
+  - Created `worldTextures.jsx` generating cached 512x512 architectural facade textures (arched/grid windows, mullions, warm plaster/brick, glossy window roughness & bump maps) and sunlit dashed wet-asphalt road textures.
+  - Created `SubwayCorridor.jsx` + `corridorBanners.jsx`: infinite-scrolling sunlit 3-lane railway corridor with gravel ballast, instanced wooden railway sleepers, 6 brushed-steel rails, sandstone sidewalks, multi-story textured terracotta buildings with awnings & AC units, brick overpass arches, signal lights, and colorful swaying overhead festival banners.
+  - Created `CityBlockWorld.jsx` + `cityTraffic.jsx`: GTA-style sunlit city grid with wet-asphalt avenues, raised sidewalks, textured towers & storefronts, street lamps, urban shade trees, and cruising clearcoat AI traffic cars.
+  - Created `ArticulatedRunner.jsx` exposing the full IK running/jumping/sliding/banking/crash-stars articulated character rig to AI-generated games, and upgraded `StylizedTrain.jsx` & `StylizedObstacles.jsx` (vibrant clearcoat liveries, twin headlights, AC pods, auto-spinning embossed star coins) with `spawnSdk.jsx` & `compileGameCode.jsx` bindings.
+- **Cinematic Lighting & Motion Feel (`StudioBackdrop.jsx`, `SmartCamera.jsx`):**
+  - Brightened golden-hour sunlit lighting + cool rim fill and tightened `SmartCamera` hero follow framing (`distance=7.4`, `height=3.9`) with subtle banking roll on steer/strafe.
+
+### Fixed
+- **Bulletproof Gemini JSON Generation (`backend/ai_service.py`, `backend/prompts.py`, `backend/requirements.txt`):**
+  - Installed `json-repair`, raised `max_output_tokens=32768`, added resilient JSON repair + automatic retry across fallback models on `JSONDecodeError` (fixing `Expecting ',' delimiter` errors on complex prompts like `"gta"`), and directed Gemini to compose our Unity-grade world & prop prefabs.
+
+## [0.68.0] - 2026-11-20
+### Fixed
+- **Stuck Camera & Frozen Gameplay Recovery (`SmartCamera.jsx`, `cameraMath.jsx`, `compileGameCode.jsx`):**
+  - Added `resolveCameraTarget` in `cameraMath.jsx` supporting React refs (`THREE.Object3D` world position / `.position`), arrays `[x,y,z]`, `{x,y,z}` objects, and functions; accepted `target`, `targetPosition`, and `targetRef` in `SmartCamera.jsx` and auto-synced custom targets into `motionBus.pos`/`vel` so `ObjectiveBeacon`, `SmartEntity`, and `MinimapHUD` track the player automatically. Ignored instanced foliage meshes in `avoidCameraCollision`.
+  - Wrapped `useFrame` in `compileGameCode.jsx` (`useSafeFrame`) so AI-generated games wait until `hasStarted` (after clicking PLAY), cleanly pause when `isPaused` (Esc / Upgrade Draft) or after Victory/GameOver, and always receive clamped `dt <= 0.05`. Added the same start/pause guard to `SmartEntity.jsx`, `DrivableVehicle.jsx`, and `FlyableCraft.jsx`.
+- **Invisible PBR Tracks & Input Compatibility (`compileGameCode.jsx`, `pbrMaterials.jsx`, `pbrNoise.jsx`, `MeshBuilder.jsx`, `RealisticTerrain.jsx`, `useGameInput.jsx`, `PropModel.jsx`, `SkeletalActor.jsx`, `UpgradeModal.jsx`):**
+  - Added `SafeReact.createElement` in `compileGameCode.jsx` so `<mesh material={plainPbrProps}>` (from `usePbrMaterial` / `useStudioMaterial`) automatically binds a `<meshPhysicalMaterial>` child instead of rendering invisible meshes, and normalized scalar `repeat` values via `normRepeat`.
+  - Upgraded `useGameInput.jsx` so `keys` works both directly (`keys.a`, `keys.ArrowLeft`, `keys.Space`, `keys[' ']`) and via `keys.current`, while preventing Space/Arrow scroll.
+  - Hardened array `scale={[x,y,z]}` handling for `<ContactShadows>` in `PropModel.jsx` and `SkeletalActor.jsx`, and supported `item.desc || item.description` in `UpgradeModal.jsx`.
+- **Prompt & Scenery Accuracy (`backend/prompts.py`, `backend/ai_service.py`):**
+  - Updated `SDK_CONTEXT`, `ART_DIRECTION_RULES`, and `OUTDOOR_DETAIL_RULE` to enforce ref-based 60FPS `useFrame` movement (zero per-frame `setState`), real AABB/distance collision checks on every obstacle/collectible, explicit `<SmartCamera target={playerRef} />`, and theme-appropriate scenery (architectural tracks/tunnels/buildings for urban/subway worlds instead of forced lava/foliage).
+
 ## [0.67.0] - 2026-11-19
 ### Changed
 - Migrated `backend/ai_service.py` to official `google-genai` SDK (`genai.Client(api_key=...)`, `client.aio.models.generate_content`) defaulting to `gemini-3.5-flash` with `response_schema=GameConfig`, `95s` timeout & automatic live failover across `gemini-3.8-flash`/`3.7`/`3.6`, supporting `AQ.*` Express/AI Studio keys cleanly with `load_dotenv()` initialized first in `backend/main.py`.

@@ -8,10 +8,11 @@ function ThrowAsyncError({ error }) {
   return null;
 }
 
-/** Full-viewport sandbox container enforcing explicit 100vw x 100vh dimensions and a visible ErrorBoundary. */
+/** Full-viewport sandbox container enforcing explicit 100vw x 100vh dimensions, HUD-free 2s poster snapshot & ErrorBoundary. */
 export function SandboxViewport({ gameConfig, onBackToLobby }) {
   const runId = useGameStore((s) => s.runId);
   const gameId = useGameStore((s) => s.currentGame?.id || '');
+  const hasThumbnail = useGameStore((s) => Boolean(s.currentGame?.thumbnail));
   const [fatalError, setFatalError] = useState(null);
 
   useEffect(() => {
@@ -20,6 +21,7 @@ export function SandboxViewport({ gameConfig, onBackToLobby }) {
 
   return (
     <div
+      data-thumbnail-ready={hasThumbnail ? 'true' : 'false'}
       style={{ width: '100vw', height: '100vh' }}
       className="relative w-screen h-screen min-h-screen overflow-hidden bg-[#E8DFD5]"
     >

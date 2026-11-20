@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { Flame, Shield, Sparkles, Wind, Zap } from 'lucide-react';
 import { soundEngine } from '../../../../shared/audio/soundEngine';
-import { emitPopup } from '../spawnSdk';
+import { emitPopup } from '../motionBus';
 import { useProgressionStore } from './RunProgression';
 
 const ICONS = { zap: Zap, wind: Wind, flame: Flame, shield: Shield, sparkles: Sparkles };
@@ -68,7 +68,7 @@ export function UpgradeModal() {
                     {item.title}
                   </h3>
                   <p className="text-xs leading-relaxed text-[#6E6A61] dark:text-[#94A3B8]">
-                    {item.desc}
+                    {item.desc || item.description}
                   </p>
                 </div>
               </button>

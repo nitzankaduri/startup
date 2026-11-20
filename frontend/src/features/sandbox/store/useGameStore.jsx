@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { soundEngine } from '../../../shared/audio/soundEngine';
-import { emitPopup, isPowerupActive, motionBus } from '../sdk/spawnSdk';
+import { emitPopup, isPowerupActive, motionBus } from '../sdk/motionBus';
 import { buildFreshRunState, computeFinalScore } from './gameStoreHelpers';
 
 export const DASH_COOLDOWN_MS = 1400;
@@ -21,15 +21,17 @@ export const useGameStore = create((set, get) => ({
   setGame: (game) => set((s) => ({ currentGame: game, ...buildFreshRunState(game, s.runId, false) })),
   resetRun: () => set((s) => buildFreshRunState(s.currentGame, s.runId, true)),
   setGeneratedCode: (code) => set((s) => (s.currentGame ? { currentGame: { ...s.currentGame, game_config: { ...s.currentGame.game_config, code } } } : {})),
-  registerHud: ({ meters, actions, controlsHint } = {}) => set((s) => ({
-    ...(meters !== undefined ? { customMeters: Array.isArray(meters) ? meters : Object.entries(meters).map(([label, value]) => ({ label, value })) } : {}),
-    ...(actions !== undefined ? { customActions: actions } : {}),
-    ...(controlsHint !== undefined ? { controlsHint } : {}),
-    ...(meters === undefined && actions === undefined && controlsHint === undefined ? s : {}),
-  })),
+  registerHud: (payload = {}) => set((s) => {
+    if (!payload || typeof payload !== 'object' || payload.$$typeof || typeof payload.type === 'string' || typeof payload.type === 'function') return s;
+    const { meters, actions, controlsHint, ...flat } = payload;
+    const raw = meters !== undefined ? meters : (Object.keys(flat).length ? flat : undefined);
+    const cm = raw !== undefined ? (Array.isArray(raw) ? raw : Object.entries(raw).map(([label, value]) => ({ label, value }))).filter((m) => m && typeof m.value !== 'object') : undefined;
+    if (cm === undefined && actions === undefined && controlsHint === undefined) return s;
+    if ((cm === undefined || JSON.stringify(cm) === JSON.stringify(s.customMeters)) && (actions === undefined || actions === s.customActions) && (controlsHint === undefined || controlsHint === s.controlsHint)) return s;
+    return { ...(cm !== undefined ? { customMeters: cm } : {}), ...(actions !== undefined ? { customActions: actions } : {}), ...(controlsHint !== undefined ? { controlsHint } : {}) };
+  }),
   updateCurrentGameThumbnail: (thumbnail) => set((s) => (s.currentGame ? { currentGame: { ...s.currentGame, thumbnail } } : {})),
   updateCurrentGameScores: (scores) => set((s) => (s.currentGame ? { currentGame: { ...s.currentGame, scores } } : {})),
-
   updatePhysicsParams: ({ gravity, speed, jump_force }) => set((s) => {
     if (!s.currentGame) return {};
     const cfg = s.currentGame.game_config;
@@ -38,11 +40,9 @@ export const useGameStore = create((set, get) => ({
       currentGame: { ...s.currentGame, game_config: { ...cfg, player: { ...cfg.player, ...(speed !== undefined ? { speed } : {}), ...(jump_force !== undefined ? { jump_force } : {}) } } },
     };
   }),
-
   activatePowerup: (type, durationMs) => {
     const until = performance.now() + durationMs;
-    motionBus.powerups[type] = until;
-    soundEngine.playBoost();
+    motionBus.powerups[type] = until; soundEngine.playBoost();
     emitPopup(`${type === 'multiplier' ? '2X SCORE' : type.toUpperCase()}!`);
     set((s) => ({ activePowerups: { ...s.activePowerups, [type]: { until, duration: durationMs } } }));
   },

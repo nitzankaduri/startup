@@ -8,10 +8,12 @@ import { ArenaCombatSystem } from '../modes/ArenaCombatSystem';
 import { resetCombatBus } from '../modes/combatBus';
 import { RacerController } from '../modes/RacerController';
 import { WaveSpawner } from '../modes/WaveSpawner';
-import { FloatingNumbersLayer, resetFeelBus, resetMotionBus, resetProgression, resetRadarBus } from '../sdk/spawnSdk';
+import { FloatingNumbersLayer, resetArenaPhysics, resetFeelBus, resetMotionBus, resetProgression, resetRadarBus } from '../sdk/spawnSdk';
 import { preloadAllRegistryModels } from '../sdk/assets/modelRegistry';
 import { soundEngine } from '../../../shared/audio/soundEngine';
+import { SandboxEditorRig } from '../../editor/SandboxEditorRig';
 import { useGameStore } from '../store/useGameStore';
+import { useSceneEditorStore } from '../store/useSceneEditorStore';
 import { QUALITY_PRESETS, useSettingsStore } from '../store/useSettingsStore';
 import { AssetCatalog } from './AssetCatalog';
 import { CameraRig } from './CameraRig';
@@ -38,6 +40,8 @@ export function GameCanvas({ gameConfig: propConfig, onFatalError }) {
   const storeGame = useGameStore((state) => state.currentGame);
   const gravity = useGameStore((state) => state.gravity);
   const runId = useGameStore((state) => state.runId);
+  const isEditMode = useSceneEditorStore((s) => s.isEditMode);
+  const setSceneRootRef = useSceneEditorStore((s) => s.setSceneRootRef);
 
   useEffect(() => {
     preloadAllRegistryModels();
@@ -45,8 +49,11 @@ export function GameCanvas({ gameConfig: propConfig, onFatalError }) {
   }, []);
 
   useEffect(() => {
+    useSettingsStore.getState().setPaused(false);
+    useSceneEditorStore.getState().setEditMode(false);
     resetCombatBus();
     resetMotionBus();
+    resetArenaPhysics();
     resetRadarBus();
     resetFeelBus();
     resetProgression();
@@ -72,7 +79,7 @@ export function GameCanvas({ gameConfig: propConfig, onFatalError }) {
         preserveDrawingBuffer: true,
         antialias: true,
         toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 1.05,
+        toneMappingExposure: 1.15,
       }}
       camera={{ position: [0, 6, 10], fov: 60 }}
       style={{ width: '100%', height: '100%' }}
@@ -83,41 +90,33 @@ export function GameCanvas({ gameConfig: propConfig, onFatalError }) {
         onDecline={() => setLowQuality(true)}
         onIncline={() => setLowQuality(false)}
       />
-      {hasDynamicCode ? (
-        <DynamicGameRunner key={runId} gameConfig={gameConfig} prompt={storeGame?.prompt || ''} onFatalError={onFatalError} />
-      ) : (
-        <>
-          <SceneEnvironment title={gameConfig.title} environment={env} lowQuality={lowQuality} shadowMapSize={shadowMapSize} />
-          <WorldScenery title={gameConfig.title} environment={env} />
-          <CameraRig gameMode={gameMode} cameraMode={gameConfig.camera_mode || env.camera_mode || 'follow'} />
-
-          {isRunner ? (
-            <ArcadeRunnerRig key={runId} playerConfig={gameConfig.player} groundColor={groundColor} />
-          ) : (
-            <Physics key={runId} paused={isPaused} gravity={[0, gravity, 0]}>
-              <RigidBody type="fixed" colliders={false} position={[0, -0.5, 0]} friction={0.7}>
-                <CuboidCollider args={[deckSize[0] / 2, 0.5, deckSize[2] / 2]} />
-                <RoundedBox args={deckSize} radius={0.1} smoothness={4} receiveShadow>
-                  <meshStandardMaterial color={groundColor} roughness={0.78} metalness={0.05} />
-                </RoundedBox>
-                <mesh position={[0, -12.5, 0]} receiveShadow>
-                  <boxGeometry args={[deckSize[0] * 0.45, 24, deckSize[2] * 0.45]} />
-                  <meshStandardMaterial color="#3F3A34" roughness={0.9} metalness={0.05} />
-                </mesh>
-              </RigidBody>
-
-              <AssetCatalog gameConfig={gameConfig} />
-              {isRacer ? (
-                <RacerController playerConfig={gameConfig.player} />
-              ) : (
-                <PlayerController playerConfig={gameConfig.player} />
-              )}
-              {isArena && <ArenaCombatSystem />}
-              {gameMode === 'survival_waves' && <WaveSpawner />}
-            </Physics>
-          )}
-        </>
-      )}
+      <group ref={setSceneRootRef}>
+        {hasDynamicCode ? (
+          <DynamicGameRunner key={runId} gameConfig={gameConfig} prompt={storeGame?.prompt || ''} onFatalError={onFatalError} />
+        ) : (
+          <>
+            <SceneEnvironment title={gameConfig.title} environment={env} lowQuality={lowQuality} shadowMapSize={shadowMapSize} />
+            <WorldScenery title={gameConfig.title} environment={env} />
+            <CameraRig gameMode={gameMode} cameraMode={gameConfig.camera_mode || env.camera_mode || 'follow'} />
+            {isRunner ? (
+              <ArcadeRunnerRig key={runId} playerConfig={gameConfig.player} groundColor={groundColor} />
+            ) : (
+              <Physics key={runId} paused={isPaused || isEditMode} gravity={[0, gravity, 0]}>
+                <RigidBody type="fixed" colliders={false} position={[0, -0.5, 0]} friction={0.7}>
+                  <CuboidCollider args={[deckSize[0] / 2, 0.5, deckSize[2] / 2]} />
+                  <RoundedBox args={deckSize} radius={0.1} smoothness={4} receiveShadow><meshStandardMaterial color={groundColor} roughness={0.78} metalness={0.05} /></RoundedBox>
+                  <mesh position={[0, -12.5, 0]} receiveShadow><boxGeometry args={[deckSize[0] * 0.45, 24, deckSize[2] * 0.45]} /><meshStandardMaterial color="#3F3A34" roughness={0.9} metalness={0.05} /></mesh>
+                </RigidBody>
+                <AssetCatalog gameConfig={gameConfig} />
+                {isRacer ? <RacerController playerConfig={gameConfig.player} /> : <PlayerController playerConfig={gameConfig.player} />}
+                {isArena && <ArenaCombatSystem />}
+                {gameMode === 'survival_waves' && <WaveSpawner />}
+              </Physics>
+            )}
+          </>
+        )}
+      </group>
+      <SandboxEditorRig />
 
       <ParticleSystem />
       <PowerupSystem />

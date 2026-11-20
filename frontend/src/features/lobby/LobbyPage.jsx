@@ -6,7 +6,7 @@ import { Navbar } from './Navbar';
 import { RecentGamesGrid } from './RecentGamesGrid';
 import { ShowcaseStrip } from './ShowcaseStrip';
 
-export function LobbyPage({ theme, toggleTheme, games, isFetchingGames, isLoading, error, onClearError, onGenerate, onPlayGame, onRemixGame }) {
+export function LobbyPage({ theme, toggleTheme, games, isFetchingGames, isLoading, buildStage, error, onClearError, onGenerate, onPlayGame, onRemixGame }) {
   const [prompt, setPrompt] = useState('');
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
@@ -44,6 +44,7 @@ export function LobbyPage({ theme, toggleTheme, games, isFetchingGames, isLoadin
           setPrompt={setPrompt}
           onGenerate={onGenerate}
           isLoading={isLoading}
+          buildStage={buildStage}
           error={error}
           onClearError={onClearError}
           inputRef={promptInputRef}

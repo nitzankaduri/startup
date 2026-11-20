@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { fixCode } from '../../../shared/api/gameApi';
 import { compileGameCode } from '../sdk/compileGameCode';
 import { StudioBackdrop } from '../sdk/MeshBuilder';
@@ -8,7 +8,7 @@ import { CanvasErrorBoundary } from './CanvasErrorBoundary';
 export function DynamicGameRunner({ gameConfig, prompt = '', onFatalError }) {
   const code = gameConfig?.code || gameConfig?.generated_code || '';
   const attemptsRef = useRef(0);
-  const [healing, setHealing] = useState(false);
+  const healingRef = useRef(false);
 
   const registerHud = useGameStore((s) => s.registerHud);
   const setTelemetry = useGameStore((s) => s.setTelemetry);
@@ -21,14 +21,15 @@ export function DynamicGameRunner({ gameConfig, prompt = '', onFatalError }) {
   }, [prompt]);
 
   const healCode = useCallback(async (errOrMsg) => {
+    if (healingRef.current) return;
     const errorMsg = errOrMsg?.message || String(errOrMsg || 'Dynamic scene runtime error');
     setTelemetry({ synthesisError: errorMsg });
-    if (!code || healing || attemptsRef.current >= 2) {
+    if (!code || attemptsRef.current >= 2) {
       onFatalError?.(errOrMsg instanceof Error ? errOrMsg : new Error(errorMsg));
       return;
     }
     attemptsRef.current += 1;
-    setHealing(true);
+    healingRef.current = true;
     try {
       const res = await fixCode({ code, error: errorMsg, prompt });
       if (res?.code) { setTelemetry({ synthesisError: '' }); setGeneratedCode(res.code); }
@@ -38,9 +39,9 @@ export function DynamicGameRunner({ gameConfig, prompt = '', onFatalError }) {
       setTelemetry({ synthesisError: detail });
       onFatalError?.(new Error(detail));
     } finally {
-      setHealing(false);
+      healingRef.current = false;
     }
-  }, [code, healing, prompt, setGeneratedCode, setTelemetry, onFatalError]);
+  }, [code, prompt, setGeneratedCode, setTelemetry, onFatalError]);
 
   const onScore = useCallback((pts) => setTelemetry({ runnerScore: pts, score: pts }), [setTelemetry]);
 
@@ -61,9 +62,10 @@ export function DynamicGameRunner({ gameConfig, prompt = '', onFatalError }) {
   }, [compiled.err, healCode]);
 
   const env = gameConfig?.environment || {};
+  const hasOwnStage = /(BiomeStage|StudioBackdrop)/.test(code);
   return (
     <>
-      <StudioBackdrop skyHorizon={env.sky_color || '#E8DFD5'} skyTop="#9CC7EC" sunIntensity={env.ambient_intensity ? env.ambient_intensity * 2 : 2.0} />
+      {!hasOwnStage && <StudioBackdrop skyHorizon={env.sky_color || '#E8DFD5'} skyTop="#9CC7EC" sunIntensity={env.ambient_intensity ? env.ambient_intensity * 2 : 2.0} />}
       {compiled.Comp && (
         <CanvasErrorBoundary inline resetKey={code} onError={(err) => healCode(err)}>
           <compiled.Comp
