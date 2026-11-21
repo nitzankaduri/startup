@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { InstancedFoliage } from '../sdk/foliage/InstancedFoliage';
+import { createTerrainSurfaceTextures } from '../sdk/ProceduralTextures';
 import { RealisticTerrain } from '../sdk/RealisticTerrain';
 import { createRng } from './sceneryHelpers';
 
@@ -28,6 +29,10 @@ function buildSculptedMountainGeo(isCap = false) {
 export function BiomeTerrain({ palette }) {
   const mtnRef = useRef(null);
   const capRef = useRef(null);
+  const terrainTex = useMemo(
+    () => createTerrainSurfaceTextures({ biome: palette.isTwilight ? 'sand' : 'grass', repeatX: 3, repeatY: 3 }),
+    [palette.isTwilight]
+  );
   const cliffRef = useRef(null);
 
   const mtnGeo = useMemo(() => buildSculptedMountainGeo(false), []);
@@ -103,14 +108,14 @@ export function BiomeTerrain({ palette }) {
         flatRadius={24}
       />
       <instancedMesh ref={mtnRef} args={[mtnGeo, null, MTN_COUNT]} receiveShadow>
-        <meshStandardMaterial color={palette.mountain} roughness={0.92} flatShading />
+        <meshStandardMaterial color={palette.mountain} map={terrainTex.map} bumpMap={terrainTex.bumpMap} bumpScale={0.08} roughnessMap={terrainTex.roughnessMap} roughness={0.88} flatShading />
       </instancedMesh>
       <instancedMesh ref={capRef} args={[capGeo, null, MTN_COUNT]}>
-        <meshStandardMaterial color={palette.cap} roughness={0.75} flatShading />
+        <meshStandardMaterial color={palette.cap} bumpMap={terrainTex.bumpMap} bumpScale={0.04} roughness={0.72} flatShading />
       </instancedMesh>
       <instancedMesh ref={cliffRef} args={[null, null, CLIFF_COUNT]} receiveShadow>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color={palette.mountain} roughness={0.88} flatShading />
+        <meshStandardMaterial color={palette.mountain} map={terrainTex.map} bumpMap={terrainTex.bumpMap} bumpScale={0.06} roughness={0.86} flatShading />
       </instancedMesh>
     </group>
   );

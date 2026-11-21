@@ -52,6 +52,15 @@ export function MinimapHUD() {
       dots.push({ id: e.id, type: 'enemy', ...toRadarXY(e.position[0], e.position[2], px, pz, yaw) });
     }
   });
+  const worldSpec = cfg.world_json || cfg.worldSpec;
+  (worldSpec?.entities || []).forEach((e) => {
+    if (collectedIds.includes(e.id) || radarBus.blips.has(e.id)) return;
+    if (e.kind === 'collectible' || e.kind === 'checkpoint') {
+      dots.push({ id: e.id, type: 'collectible', ...toRadarXY(e.position[0], e.position[2], px, pz, yaw) });
+    } else if (e.kind === 'enemy' || e.kind === 'boss') {
+      dots.push({ id: e.id, type: 'enemy', ...toRadarXY(e.position[0], e.position[2], px, pz, yaw) });
+    }
+  });
   if (cfg.goal?.position && !radarBus.blips.size) {
     dots.push({ id: 'cfg-goal', type: 'objective', ...toRadarXY(cfg.goal.position[0], cfg.goal.position[2], px, pz, yaw) });
   }

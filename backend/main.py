@@ -8,30 +8,20 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-from ai_service import fix_generated_code, generate_game_config, remix_game_config
+from ai_service import fix_generated_code, generate_game_config, refine_world_json, remix_game_config
 from database import (
-    add_game_score,
-    check_db_health,
-    get_game_by_id,
-    increment_plays_count,
-    list_games,
-    save_game,
-    update_game_thumbnail,
+    add_game_score, check_db_health, get_game_by_id, increment_plays_count,
+    list_games, save_game, update_game_code, update_game_thumbnail, update_game_world_json,
 )
 from schemas import (
-    FixCodeRequest,
-    FixCodeResponse,
-    GameRecord,
-    GenerateRequest,
-    GenerateResponse,
-    RemixRequest,
-    ScoreSubmitRequest,
-    ThumbnailRequest,
+    FixCodeRequest, FixCodeResponse, GameRecord, GenerateRequest,
+    GenerateResponse, RemixRequest, ScoreSubmitRequest, ThumbnailRequest,
 )
 from stream_routes import stream_router
+from world_schemas import WorldRefineRequest, WorldRefineResponse
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
-app = FastAPI(title="Spawn.gg API", version="0.1.0")
+app = FastAPI(title="Spawn.gg API", version="0.2.0")
 app.include_router(stream_router)
 
 app.add_middleware(
@@ -48,11 +38,7 @@ app.add_middleware(
 async def health_check():
     db_ok = await check_db_health()
     has_ai_key = bool(os.getenv("GEMINI_API_KEY", "").strip())
-    return {
-        "status": "ok",
-        "database": "connected" if db_ok else "memory_fallback",
-        "ai_key_configured": has_ai_key,
-    }
+    return {"status": "ok", "database": "connected" if db_ok else "memory_fallback", "ai_key_configured": has_ai_key}
 
 
 @app.post("/api/generate", response_model=GenerateResponse)
@@ -63,7 +49,7 @@ async def generate_game(payload: GenerateRequest):
         "id": game_id,
         "title": game_config.title,
         "prompt": payload.prompt,
-        "theme": "custom",
+        "theme": game_config.world_json.theme if game_config.world_json else "custom",
         "game_config": game_config.model_dump(),
         "thumbnail": None,
         "scores": [],
@@ -78,16 +64,13 @@ async def remix_game(payload: RemixRequest):
     existing = await get_game_by_id(payload.game_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Base game not found")
-
-    updated_config = await remix_game_config(
-        existing["game_config"], payload.instruction, payload.generated_code
-    )
+    updated_config = await remix_game_config(existing["game_config"], payload.instruction, payload.generated_code)
     new_id = str(uuid.uuid4())[:8]
     record = {
         "id": new_id,
         "title": updated_config.title,
         "prompt": f"{existing['prompt']} | Remix: {payload.instruction}",
-        "theme": existing.get("theme", "custom"),
+        "theme": updated_config.world_json.theme if updated_config.world_json else existing.get("theme", "custom"),
         "game_config": updated_config.model_dump(),
         "thumbnail": None,
         "scores": [],
@@ -95,6 +78,19 @@ async def remix_game(payload: RemixRequest):
     }
     await save_game(record)
     return GenerateResponse(id=new_id, title=updated_config.title, game_config=updated_config)
+
+
+@app.post("/api/games/refine", response_model=WorldRefineResponse)
+async def refine_world(payload: WorldRefineRequest):
+    result = await refine_world_json(
+        payload.current_world_json, payload.refinement_prompt, payload.game_title, payload.current_code
+    )
+    if payload.game_id:
+        if result.world_json is not None:
+            await update_game_world_json(payload.game_id, result.world_json.model_dump())
+        elif result.code:
+            await update_game_code(payload.game_id, result.code)
+    return result
 
 
 @app.post("/api/fix-code", response_model=FixCodeResponse)
@@ -117,8 +113,7 @@ async def get_game(game_id: str):
 
 @app.post("/api/games/{game_id}/thumbnail")
 async def save_thumbnail(game_id: str, payload: ThumbnailRequest):
-    ok = await update_game_thumbnail(game_id, payload.thumbnail)
-    if not ok:
+    if not await update_game_thumbnail(game_id, payload.thumbnail):
         raise HTTPException(status_code=404, detail="Game not found")
     return {"status": "ok"}
 

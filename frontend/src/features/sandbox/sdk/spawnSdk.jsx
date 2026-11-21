@@ -14,6 +14,17 @@ export {
 } from './runtime/GameRuntimeKit';
 export { useGameInput } from './useGameInput';
 export { SmartCamera } from './SmartCamera';
+export { ChaseCameraRig } from '../physics/ChaseCameraRig';
+export { PlayerRigController } from '../physics/PlayerRigController';
+export { StaticPhysicsBody, WorldPhysicsProvider } from '../physics/WorldPhysicsProvider';
+export { CartoonPlayerRig } from '../gameplay/CartoonPlayerRig';
+export { DynamicActionCamera } from '../gameplay/DynamicActionCamera';
+export { CartoonVFX, emitCartoonVfx } from '../gameplay/CartoonVFX';
+export { MODEL_CATALOG, preloadCatalogModels, resolveCatalogModel } from '../assets/ModelCatalog';
+export { CARTOON_ASSET_CATALOG, preloadCartoonCatalog, resolveCartoonAsset } from '../assets/CartoonAssetCatalog';
+export { SmartModel } from '../assets/SmartModel';
+export { StylizedEntity } from '../assets/StylizedEntity';
+export { JuiceFX, emitJuice } from '../assets/JuiceFX';
 export { RealisticPhysicsRig, stepInertiaBody } from './RealisticPhysicsRig';
 export { SmokeTrail } from './SmokeTrail';
 export { SkeletalActor } from './assets/SkeletalActor';
@@ -29,7 +40,7 @@ export { PracticalLights } from './atmosphere/PracticalLights';
 export { TIME_OF_DAY_PRESETS, WEATHER_CONFIGS } from './atmosphere/weatherPresets';
 export { SubwayCorridor } from './worlds/SubwayCorridor';
 export { CityBlockWorld } from './worlds/CityBlockWorld';
-export { CityGrid, RaceTrack } from './world/CityRoadBuilder';
+export { CityGrid, CityGridGenerator, RaceTrack, TrackGenerator } from './world/CityRoadBuilder';
 export { StylizedTrain, StylizedRampTrain } from './props/StylizedTrain';
 export { LowHurdleProp, HighBarrierProp, StylizedCoinProp } from './props/StylizedObstacles';
 export { computeNormalizedMetrics } from './assets/normalizeModelMetrics';
@@ -50,6 +61,8 @@ export {
   RealisticTerrain, StudioBackdrop, createPbrTextureSet, createPhysicalMaterial, usePbrMaterial, useStudioMaterial,
 } from './MeshBuilder';
 export { pbrMaterials } from './pbrMaterials';
+export { SubwayToonArtDirector } from '../components/SubwayToonArtDirector';
+export { SubwayToonGroup, applySubwayToonStyle, getToonGradientMap, saturateToonColor, toToonMaterial } from './ToonMaterialHelper';
 export { HealthBar3D } from './HealthBar3D';
 export { FloatingNumbersLayer, getFeelDelta, resetFeelBus, spawnFloatingNumber, triggerHitStop, useGameLoop } from './gameFeel';
 export {

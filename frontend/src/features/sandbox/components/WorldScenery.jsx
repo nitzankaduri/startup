@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { CuboidCollider } from '@react-three/rapier';
 import * as THREE from 'three';
+import { StaticPhysicsBody, useIsInsidePhysics } from '../physics/WorldPhysicsProvider';
+import { createBrushedMetalTextures, createBuildingFacadeTextures } from '../sdk/ProceduralTextures';
 import { BiomeTerrain } from './BiomeTerrain';
 import { createRng, getAtmospherePalette } from './sceneryHelpers';
 import { WorldTrackDressing } from './WorldTrackDressing';
@@ -17,6 +20,12 @@ export function WorldScenery({ title = '', environment = {} }) {
   const cloudRef = useRef(null);
 
   const palette = useMemo(() => getAtmospherePalette(title, environment), [title, environment]);
+  const inPhysics = useIsInsidePhysics();
+  const facadeTex = useMemo(
+    () => createBuildingFacadeTextures({ repeatX: 2, repeatY: 4, concreteColor: palette.building, night: palette.isTwilight }),
+    [palette.building, palette.isTwilight]
+  );
+  const metalTex = useMemo(() => createBrushedMetalTextures({ repeatX: 2, repeatY: 2 }), []);
 
   const data = useMemo(() => {
     const rng = createRng(1337);
@@ -74,12 +83,19 @@ export function WorldScenery({ title = '', environment = {} }) {
     <group>
       <BiomeTerrain palette={palette} />
       <WorldTrackDressing title={title} environment={environment} />
-      <instancedMesh ref={bldgRef} args={[null, null, BLDG_COUNT]} castShadow receiveShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={palette.building} roughness={0.82} /></instancedMesh>
-      <instancedMesh ref={roofRef} args={[null, null, BLDG_COUNT]} castShadow><coneGeometry args={[1, 1, 4]} /><meshStandardMaterial color={palette.roof} roughness={0.76} flatShading /></instancedMesh>
-      <instancedMesh ref={balconyRef} args={[null, null, BLDG_COUNT]} castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#2E2C28" roughness={0.7} /></instancedMesh>
-      <instancedMesh ref={awningRef} args={[null, null, BLDG_COUNT]} castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#D96B27" roughness={0.75} /></instancedMesh>
-      <instancedMesh ref={tankRef} args={[null, null, BLDG_COUNT]}><cylinderGeometry args={[0.5, 0.5, 1, 10]} /><meshStandardMaterial color="#71717A" roughness={0.5} metalness={0.45} /></instancedMesh>
+      <instancedMesh ref={bldgRef} args={[null, null, BLDG_COUNT]} castShadow receiveShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#FFFFFF" {...facadeTex} roughness={0.78} metalness={0.18} emissive="#FFF0D4" emissiveIntensity={palette.isTwilight ? 1.4 : 0.48} /></instancedMesh>
+      <instancedMesh ref={roofRef} args={[null, null, BLDG_COUNT]} castShadow><coneGeometry args={[1, 1, 4]} /><meshStandardMaterial color={palette.roof} roughnessMap={metalTex.roughnessMap} bumpMap={metalTex.bumpMap} bumpScale={0.04} roughness={0.68} flatShading /></instancedMesh>
+      <instancedMesh ref={balconyRef} args={[null, null, BLDG_COUNT]} castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#3F444E" {...metalTex} roughness={0.42} metalness={0.72} /></instancedMesh>
+      <instancedMesh ref={awningRef} args={[null, null, BLDG_COUNT]} castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color="#D96B27" bumpMap={metalTex.bumpMap} bumpScale={0.03} roughnessMap={metalTex.roughnessMap} roughness={0.65} /></instancedMesh>
+      <instancedMesh ref={tankRef} args={[null, null, BLDG_COUNT]}><cylinderGeometry args={[0.5, 0.5, 1, 10]} /><meshStandardMaterial color="#9CA3AF" {...metalTex} roughness={0.34} metalness={0.78} /></instancedMesh>
       <instancedMesh ref={cloudRef} args={[null, null, CLOUD_COUNT]}><dodecahedronGeometry args={[1, 1]} /><meshStandardMaterial color={palette.cloud} roughness={0.95} transparent opacity={0.88} flatShading /></instancedMesh>
+      {inPhysics && (
+        <StaticPhysicsBody colliders={false} friction={0.86}>
+          {data.bldgs.map((b, i) => (
+            <CuboidCollider key={i} position={[b.x, b.y, b.z]} args={[b.w * 0.5, b.h * 0.5, b.d * 0.5]} />
+          ))}
+        </StaticPhysicsBody>
+      )}
     </group>
   );
 }

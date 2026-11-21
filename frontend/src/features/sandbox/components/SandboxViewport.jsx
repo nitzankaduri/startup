@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { CanvasErrorBoundary } from './CanvasErrorBoundary';
 import { GameCanvas } from './GameCanvas';
@@ -8,10 +8,16 @@ function ThrowAsyncError({ error }) {
   return null;
 }
 
-/** Full-viewport sandbox container enforcing explicit 100vw x 100vh dimensions, HUD-free 2s poster snapshot & ErrorBoundary. */
-export function SandboxViewport({ gameConfig, onBackToLobby }) {
+/**
+ * Full-viewport sandbox container hosting StudioLightingRig, Rapier Physics,
+ * SmartModel .glb world specs, seamless Co-Pilot focus preservation & 1.5s poster snapshot.
+ */
+export function SandboxViewport({ gameConfig, worldSpec, onBackToLobby }) {
+  const viewportRef = useRef(null);
+  const prevWorldRef = useRef(null);
   const runId = useGameStore((s) => s.runId);
   const gameId = useGameStore((s) => s.currentGame?.id || '');
+  const activeWorld = worldSpec || useGameStore((s) => s.currentGame?.game_config?.world_json || null);
   const hasThumbnail = useGameStore((s) => Boolean(s.currentGame?.thumbnail));
   const [fatalError, setFatalError] = useState(null);
 
@@ -19,15 +25,32 @@ export function SandboxViewport({ gameConfig, onBackToLobby }) {
     setFatalError(null);
   }, [gameId, runId]);
 
+  useEffect(() => {
+    if (!activeWorld) return;
+    if (prevWorldRef.current && prevWorldRef.current !== activeWorld) {
+      requestAnimationFrame(() => {
+        const canvas = viewportRef.current?.querySelector('canvas');
+        if (canvas) {
+          if (!canvas.hasAttribute('tabindex')) canvas.setAttribute('tabindex', '-1');
+          canvas.focus({ preventScroll: true });
+        }
+      });
+    }
+    prevWorldRef.current = activeWorld;
+  }, [activeWorld]);
+
   return (
     <div
+      ref={viewportRef}
+      data-sandbox-viewport="true"
       data-thumbnail-ready={hasThumbnail ? 'true' : 'false'}
+      tabIndex={-1}
       style={{ width: '100vw', height: '100vh' }}
-      className="relative w-screen h-screen min-h-screen overflow-hidden bg-[#E8DFD5]"
+      className="relative w-screen h-screen min-h-screen overflow-hidden bg-[#E8DFD5] outline-none"
     >
-      <CanvasErrorBoundary resetKey={`${gameId}-${runId}`} onRetry={() => setFatalError(null)} onBackToLobby={onBackToLobby}>
+      <CanvasErrorBoundary resetKey={gameId || 'preview'} onRetry={() => setFatalError(null)} onBackToLobby={onBackToLobby}>
         <ThrowAsyncError error={fatalError} />
-        <GameCanvas gameConfig={gameConfig} onFatalError={setFatalError} />
+        <GameCanvas gameConfig={gameConfig} worldSpec={worldSpec} onFatalError={setFatalError} />
       </CanvasErrorBoundary>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { RoundedBox } from '@react-three/drei';
+import { StaticPhysicsBody } from '../../physics/WorldPhysicsProvider';
 import { registerCollider, unregisterCollider } from '../runtime/useArenaPhysics';
 import { AmbientTraffic } from './cityTraffic';
 import { createBuildingFacadeTextures, createCityRoadTextures } from './worldTextures';
@@ -56,10 +57,12 @@ export function CityBlockWorld({ size = 180, trafficCount = 10 }) {
 
   return (
     <group>
-      <mesh position={[0, -0.5, 0]} receiveShadow>
-        <boxGeometry args={[size, 1, size]} />
-        <meshStandardMaterial color="#3A3D44" roughness={0.86} />
-      </mesh>
+      <StaticPhysicsBody colliders="cuboid" friction={0.88}>
+        <mesh position={[0, -0.5, 0]} receiveShadow>
+          <boxGeometry args={[size, 1, size]} />
+          <meshStandardMaterial color="#3A3D44" roughness={0.86} />
+        </mesh>
+      </StaticPhysicsBody>
       {STREET_LINES.map((pos) => (
         <group key={pos}>
           <mesh position={[pos, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -74,25 +77,27 @@ export function CityBlockWorld({ size = 180, trafficCount = 10 }) {
       ))}
       {blocks.map((blk, bi) => (
         <group key={bi}>
-          <mesh position={[blk.bx, 0.11, blk.bz]} receiveShadow>
-            <boxGeometry args={[30.5, 0.22, 30.5]} />
-            <meshStandardMaterial color="#D8D2C7" roughness={0.86} />
-          </mesh>
-          {blk.buildings.map((b, i) => (
-            <group key={i} position={[b.x, 0.22, b.z]}>
-              <mesh position={[0, b.h / 2, 0]} castShadow receiveShadow>
-                <boxGeometry args={[b.w, b.h, b.d]} />
-                <meshStandardMaterial {...facadeMats[b.styleIdx]} />
-              </mesh>
-              <RoundedBox args={[b.w + 0.4, 0.5, b.d + 0.4]} radius={0.06} position={[0, b.h + 0.22, 0]} castShadow>
-                <meshStandardMaterial color="#E6DFD3" roughness={0.72} />
-              </RoundedBox>
-              <mesh position={[b.w * 0.2, b.h + 0.9, b.d * 0.18]} castShadow>
-                <boxGeometry args={[2.2, 1.0, 2.2]} />
-                <meshStandardMaterial color="#5E6670" roughness={0.6} metalness={0.35} />
-              </mesh>
-            </group>
-          ))}
+          <StaticPhysicsBody colliders="cuboid" friction={0.86}>
+            <mesh position={[blk.bx, 0.11, blk.bz]} receiveShadow>
+              <boxGeometry args={[30.5, 0.22, 30.5]} />
+              <meshStandardMaterial color="#D8D2C7" roughness={0.86} />
+            </mesh>
+            {blk.buildings.map((b, i) => (
+              <group key={i} position={[b.x, 0.22, b.z]}>
+                <mesh position={[0, b.h / 2, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[b.w, b.h, b.d]} />
+                  <meshStandardMaterial {...facadeMats[b.styleIdx]} />
+                </mesh>
+                <RoundedBox args={[b.w + 0.4, 0.5, b.d + 0.4]} radius={0.06} position={[0, b.h + 0.22, 0]} castShadow>
+                  <meshStandardMaterial color="#E6DFD3" roughness={0.72} />
+                </RoundedBox>
+                <mesh position={[b.w * 0.2, b.h + 0.9, b.d * 0.18]} castShadow>
+                  <boxGeometry args={[2.2, 1.0, 2.2]} />
+                  <meshStandardMaterial color="#5E6670" roughness={0.6} metalness={0.35} />
+                </mesh>
+              </group>
+            ))}
+          </StaticPhysicsBody>
           <group position={[blk.bx - 14.2, 0.22, blk.bz - 14.2]}>
             <mesh position={[0, 2.8, 0]} castShadow><cylinderGeometry args={[0.1, 0.14, 5.6, 8]} /><meshStandardMaterial color="#2C3038" metalness={0.6} roughness={0.4} /></mesh>
             <mesh position={[0.45, 5.5, 0]}><sphereGeometry args={[0.24, 10, 10]} /><meshStandardMaterial color="#FFF3D6" emissive="#FFF3D6" emissiveIntensity={1.2} toneMapped={false} /></mesh>

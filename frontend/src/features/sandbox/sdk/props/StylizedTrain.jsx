@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 import { RoundedBox } from '@react-three/drei';
+import { SubwayToonGroup } from '../ToonMaterialHelper';
 import { createTrainRoofTexture } from './propTextures';
 
 export function StylizedRampTrain({ w = 2.65, h = 1.65, d = 5.6, position = [0, 0, 0], rotation = [0, 0, 0], centered = false }) {
   return (
-    <group position={position} rotation={rotation}>
+    <SubwayToonGroup outline thickness={0.03} color="#1E1B4B">
+      <group position={position} rotation={rotation}>
       <group position={[0, centered ? 0 : h * 0.48, 0]} rotation={[-0.3, 0, 0]}>
         <RoundedBox args={[w, 0.34, d]} radius={0.07} smoothness={3} castShadow receiveShadow>
           <meshPhysicalMaterial color="#F2A444" roughness={0.38} metalness={0.24} clearcoat={0.5} />
@@ -21,6 +23,7 @@ export function StylizedRampTrain({ w = 2.65, h = 1.65, d = 5.6, position = [0, 
         ))}
       </group>
     </group>
+    </SubwayToonGroup>
   );
 }
 
@@ -39,7 +42,8 @@ export function StylizedTrain({
   const bodyH = h * 0.78;
   const baseY = centered ? 0 : h * 0.5;
   return (
-    <group position={position} rotation={rotation}>
+    <SubwayToonGroup outline thickness={0.03} color="#1E1B4B">
+      <group position={position} rotation={rotation}>
       <group position={[0, baseY, 0]}>
         {/* Golden-ochre painted metro car chassis */}
         <RoundedBox args={[w, bodyH, d]} radius={0.22} smoothness={4} position={[0, 0.06, 0]} castShadow receiveShadow>
@@ -121,5 +125,6 @@ export function StylizedTrain({
         ))}
       </group>
     </group>
+    </SubwayToonGroup>
   );
 }

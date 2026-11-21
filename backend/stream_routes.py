@@ -4,9 +4,8 @@ import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from ai_service import generate_game_config, refine_game_code
-from blueprint_schemas import RefineRequest, RefineResponse
-from database import save_game, update_game_code
+from ai_service import generate_game_config
+from database import save_game
 from schemas import GenerateRequest, GenerateResponse
 
 stream_router = APIRouter()
@@ -14,14 +13,6 @@ stream_router = APIRouter()
 
 def _sse(event: str, payload: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(payload)}\n\n"
-
-
-@stream_router.post("/api/games/refine", response_model=RefineResponse)
-async def refine_game_endpoint(payload: RefineRequest):
-    result = await refine_game_code(payload.current_code, payload.refinement_prompt, payload.game_title)
-    if payload.game_id:
-        await update_game_code(payload.game_id, result.code)
-    return result
 
 
 @stream_router.post("/api/generate-stream")
@@ -39,7 +30,7 @@ async def generate_game_stream(payload: GenerateRequest):
                 "id": game_id,
                 "title": game_config.title,
                 "prompt": payload.prompt,
-                "theme": "custom",
+                "theme": game_config.world_json.theme if game_config.world_json else "custom",
                 "game_config": game_config.model_dump(),
                 "thumbnail": None,
                 "scores": [],

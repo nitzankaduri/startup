@@ -1,13 +1,15 @@
 import { useMemo, useRef } from 'react';
 import { RoundedBox } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
+import { SubwayToonGroup } from '../ToonMaterialHelper';
 import { createChevronBarrierTexture, createStarCoinTexture } from './propTextures';
 
 /** Subway-Surfers signature red/white chevron sawhorse hurdle with twin reflector lamps & steel A-frame legs. */
 export function LowHurdleProp({ w = 2.6, h = 1.08, d = 0.72, position = [0, 0, 0], rotation = [0, 0, 0], centered = false }) {
   const chevron = useMemo(() => createChevronBarrierTexture(), []);
   return (
-    <group position={position} rotation={rotation}>
+    <SubwayToonGroup outline thickness={0.03} color="#1E1B4B">
+      <group position={position} rotation={rotation}>
       <group position={[0, centered ? 0 : h * 0.5, 0]}>
         {[-w * 0.4, w * 0.4].map((x) => (
           <group key={x} position={[x, -0.05, 0]}>
@@ -43,6 +45,7 @@ export function LowHurdleProp({ w = 2.6, h = 1.08, d = 0.72, position = [0, 0, 0
         ))}
       </group>
     </group>
+    </SubwayToonGroup>
   );
 }
 
@@ -50,7 +53,8 @@ export function LowHurdleProp({ w = 2.6, h = 1.08, d = 0.72, position = [0, 0, 0
 export function HighBarrierProp({ w = 2.75, h = 1.25, d = 0.72, position = [0, 0, 0], rotation = [0, 0, 0], centered = false }) {
   const chevron = useMemo(() => createChevronBarrierTexture(), []);
   return (
-    <group position={position} rotation={rotation}>
+    <SubwayToonGroup outline thickness={0.03} color="#1E1B4B">
+      <group position={position} rotation={rotation}>
       <group position={[0, centered ? 0 : 1.9, 0]}>
         {[-w * 0.46, w * 0.46].map((x) => (
           <RoundedBox key={x} args={[0.2, 2.6, 0.22]} radius={0.04} position={[x, -0.65, 0]} castShadow>
@@ -65,6 +69,7 @@ export function HighBarrierProp({ w = 2.75, h = 1.25, d = 0.72, position = [0, 0
         </RoundedBox>
       </group>
     </group>
+    </SubwayToonGroup>
   );
 }
 
@@ -82,7 +87,8 @@ export function StylizedCoinProp({ size = 0.44, shadowY = -0.78, position = [0, 
   });
 
   return (
-    <group position={position}>
+    <SubwayToonGroup outline thickness={0.03} color="#1E1B4B">
+      <group position={position}>
       <group ref={spinRef}>
         <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
           <cylinderGeometry args={[size, size, 0.14, 28]} />
@@ -106,5 +112,6 @@ export function StylizedCoinProp({ size = 0.44, shadowY = -0.78, position = [0, 
         <meshBasicMaterial color="#181715" transparent opacity={0.22} depthWrite={false} />
       </mesh>
     </group>
+    </SubwayToonGroup>
   );
 }

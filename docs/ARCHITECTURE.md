@@ -15,15 +15,15 @@ startup/
 │   ├── ARCHITECTURE.md        # System architecture (this file)
 │   └── CHANGELOG.md           # Chronological project changelog
 ├── backend/
-│   ├── main.py                # FastAPI app, CORS, REST endpoints & stream/refine router
-│   ├── stream_routes.py       # POST /api/generate-stream SSE & POST /api/games/refine
-│   ├── blueprint_schemas.py   # Pydantic Stage-1 GameBlueprint (BiomeStage/Controller/Entities) & Refine schemas
-│   ├── code_validator.py      # Pre-flight structural, SDK symbol, win/lose & useFrame setState validator
-│   ├── validator_constants.py # Verified spawnSdk exports & JSX primitive whitelist
-│   ├── game_architect.py      # Stage 1 Deep Systems Architect (thinkingBudget: 8192)
-│   ├── schemas.py             # Pydantic GameConfig, ScoreEntry, Thumbnail models
-│   ├── database.py            # Async Motor MongoDB client + memory fallback (update_game_code)
-│   ├── ai_service.py          # Stage 2 Synthesis (thinkingBudget: 16384), pre-flight auto-repair & Vibe Refinement
+│   ├── main.py                # FastAPI app, CORS, REST endpoints & instant JSON /api/games/refine
+│   ├── stream_routes.py       # POST /api/generate-stream SSE World Blueprint progress
+│   ├── world_schemas.py       # Stylized Cartoon World JSON Blueprint (`sunny_city`, `tropical_beach`, `candy_sky`, `tokyo_festival`, `desert_canyon`)
+│   ├── spatial_validator.py   # Python road/spawn anti-overlap, 3-lane passability check, curved coin arcs & 30-50 entity sanitizer
+│   ├── game_architect.py      # Fast Stylized Cartoon World Architect (<5s, Flash thinking_budget=0)
+│   ├── ai_service.py          # Single-pass Cartoon World synthesis & multilingual ~2s Co-Pilot JSON refinement
+│   ├── blueprint_schemas.py   # Legacy/stage Pydantic GameBlueprint schemas
+│   ├── schemas.py             # Pydantic GameConfig (with world_json), ScoreEntry, Thumbnail models
+│   ├── database.py            # Async Motor MongoDB client + memory fallback (update_game_world_json & code)
 │   ├── ai_helpers.py          # Resilient json_repair parser & GameConfig sanitizer
 │   ├── prompts.py             # Multi-genre level-design & remix prompts
 │   ├── presets.py             # Mode-aware deterministic fallback builder
@@ -33,6 +33,7 @@ startup/
 │   └── .env.example           # Environment variable template
 └── frontend/
     ├── index.html             # Inter typography & dark matte root
+    ├── public/models/         # Bundled CC0 .glb assets (sports_car, police_cruiser, skyscraper, tree, rock, coin, drone, spaceship, scifi_crate)
     ├── tailwind.config.js     # Matte dark color tokens
     └── src/
         ├── App.jsx            # Lobby/Live Game router + /play/:id sync
@@ -58,6 +59,30 @@ startup/
         │   │   ├── hooks/
         │   │   │   ├── useKeyboardInput.jsx
         │   │   │   └── touchInputState.jsx
+        │   │   ├── assets/
+        │   │   │   ├── CartoonAssetCatalog.js   # Stylized cartoon prefab + bundled/CC0 .glb catalog
+        │   │   │   ├── StylizedEntity.jsx       # Auto Box3-grounded (y=0) .glb + cartoon prefab loader w/ ToonMaterial & Rapier collider
+        │   │   │   ├── CartoonWorldPrefabs.jsx  # Subway train w/ graffiti decals, barriers (jump/slide) & pastel city buildings
+        │   │   │   ├── CartoonActorPrefabs.jsx  # Stylized car/cruiser, gold coin/magnet/jetpack & articulated runner/guard
+        │   │   │   ├── cartoonDecals.js         # CanvasTexture graffiti, striped shop awning & billboard generators
+        │   │   │   ├── ModelCatalog.js          # Bundled /models/*.glb + CC0 CDN asset manifest & alias resolver
+        │   │   │   ├── SmartModel.jsx           # Auto Box3-normalized .glb loader (y=0 grounded) + RigidBody collider
+        │   │   │   ├── DetailedModelFallback.jsx # Multi-part PBR fallbacks (wheels, spoilers, glass windshields, taillights)
+        │   │   │   ├── JuiceFX.jsx              # 240-instance GPU particle bursts (sparks, smoke, nitro, coins, explosions)
+        │   │   │   └── juiceAudio.js            # Keypress-unlocked spatial Web Audio SFX (engine hum, drift, chime, thud)
+        │   │   ├── gameplay/
+        │   │   │   ├── CartoonPlayerRig.jsx     # Rapier 4-rig controller w/ height-scaled grounded blob shadow
+        │   │   │   ├── CartoonVisualMesh.jsx    # Squash-and-stretch springs, limb/hoverboard bobbing, bumpy car suspension & #1E1B4B outlines
+        │   │   │   ├── DynamicActionCamera.jsx  # Spring-arm follow cam w/ boost FOV kick, lane banking & combo/crash micro-shake
+        │   │   │   ├── CartoonVFX.jsx           # Golden stars/rings, puffy dust clouds, speed lines & crash starbursts
+        │   │   │   └── cartoonSfx.jsx           # Snappy keypress-unlocked Web Audio SFX (coin ding, whoosh jump, lane swipe, combo chime)
+        │   │   ├── physics/
+        │   │   │   ├── WorldPhysicsProvider.jsx # World <Physics gravity={[0, -22, 0]}> + StaticPhysicsBody colliders
+        │   │   │   ├── PlayerRigController.jsx  # Rapier 4-rig controller (arcade_car, three_lane_runner, third_person_action, flight_combat)
+        │   │   │   ├── rigHelpers.jsx           # Arcade car grip/drift/nitro & 3-lane runner step physics
+        │   │   │   ├── actionFlightRigs.jsx     # Camera-relative 3rd-person action & 6-DOF flight combat physics
+        │   │   │   ├── RigVisuals.jsx           # Warm-editorial PBR rig meshes, SpotLights & pooled twin-laser bolts
+        │   │   │   └── ChaseCameraRig.jsx       # Spring-arm chase cam with FOV punch, corner tilt & collision micro-shake
         │   │   ├── sdk/
         │   │   │   ├── spawnSdk.jsx           # Atomic Game Building Blocks barrel
         │   │   │   ├── motionBus.jsx          # Zero-dependency telemetry, camera shake & physics motion bus
@@ -74,7 +99,9 @@ startup/
         │   │   │   ├── pbrMaterials.jsx       # 512x512 MeshPhysicalMaterial maps (bricks/turf/sand/alloy/wood) w/ anisotropy=8
         │   │   │   ├── RealisticTerrain.jsx   # 128x128 terrain with multi-layer slope & elevation shader blending
         │   │   │   ├── StudioBackdrop.jsx     # ContactShadows, sunlight, Sky + Environment
+        │   │   │   ├── ToonMaterialHelper.js  # 3-step DataTexture cel-shading, saturated palette & <Outlines #1E1B4B>
         │   │   │   ├── proceduralTextures.jsx
+        │   │   │   ├── ProceduralTextures.js  # Cached offscreen canvas PBR maps (asphalt road, facade, grass/sand, brushed metal; anisotropy=8)
         │   │   │   ├── assets/
         │   │   │   │   ├── assetCatalog.jsx            # 40+ genre-categorized GLB + StudioProp catalog & ASSET_MANIFEST
         │   │   │   │   ├── AutoNormalizeMesh.jsx       # Box3 grounded auto-normalization, SkeletonUtils.clone & ContactShadows
@@ -148,13 +175,13 @@ startup/
         │   │   │   ├── WaveSpawner.jsx, RacerController.jsx
         │   │   │   └── ArcadeRunnerRig.jsx, RunnerWorldStream.jsx, trackChunks.jsx
         │   │   └── components/
-        │   │       ├── SandboxViewport.jsx, CanvasErrorBoundary.jsx, GameCanvas.jsx, DynamicGameRunner.jsx
-        │   │       ├── SceneEnvironment.jsx, AtmosphereRig.jsx, PostFX.jsx, SceneCleanup.jsx
+        │   │       ├── SandboxViewport.jsx, CanvasErrorBoundary.jsx, GameCanvas.jsx, WorldJsonScene.jsx, SubwayCorridorScene.jsx, worldEntityActors.jsx, DynamicGameRunner.jsx
+        │   │       ├── SubwayToonArtDirector.jsx, StudioLightingRig.jsx, SceneEnvironment.jsx, AtmosphereRig.jsx, PostFX.jsx, SceneCleanup.jsx
         │   │       ├── CameraRig.jsx, MotionRig.jsx, SpeedEffects.jsx, ParticleSystem.jsx
         │   │       ├── PowerupSystem.jsx, HoverboardSystem.jsx, PowerupHUD.jsx
         │   │       ├── WorldScenery.jsx, WorldTrackDressing.jsx, BiomeTerrain.jsx, sceneryHelpers.jsx
         │   │       ├── ThumbnailCapturer.jsx, LeaderboardPanel.jsx
-        │   │       ├── GameHUD.jsx, HUDModeWidgets.jsx, TitleOverlay.jsx, PauseMenu.jsx, TouchControls.jsx
+        │   │       ├── GameHUD.jsx, HUDModeWidgets.jsx, HudStatusPills.jsx, TitleOverlay.jsx, PauseMenu.jsx, TouchControls.jsx
         │   │       ├── PublishModal.jsx, publishHelpers.jsx # 1-Click Share Link/QR, Website <iframe> Embed & Playable .html Export
         │   │       ├── StudioCopilotBar.jsx  # Collapsible live multi-turn Vibe Refinement Co-Pilot bar
         │   │       ├── ParticleBursts.jsx, DashTrail.jsx
@@ -180,7 +207,7 @@ startup/
   - **Stage 1 (`design_game_blueprint`, `thinking_budget: 8192`):** Dissects every prompt into `genre_and_camera` (`camera_rig`, `player_controller_preset`), `unique_core_mechanics` (3+), `visual_art_direction` (`biome_stage_theme`, `time_of_day`, `weather`, `studio_entities`, zero neon), road-aware or `getTerrainHeight(x, z)` spatial rules, and `rules_and_progression`.
   - **Stage 2 & Pre-Flight Self-Repair (`generate_game_config`, `code_validator.py`, `thinking_budget: 16384`, `max_output_tokens: 24576`):** Enforces `<CityGrid />` / `<RaceTrack />` + `flatGround` road-aligned spawns for urban/driving prompts, `getTerrainHeight(x, z)` terrain grounding, `<ObjectiveBeacon />` waypoints, steering AI opponents, and `useMissionState` `onVictory`/`onDefeat` triggers alongside `validate_game_code` + automatic Python self-repair before returning.
   - **Live Vibe Refinement (`POST /api/games/refine`, `StudioCopilotBar.jsx`):** Collapsible in-game Studio Co-Pilot prompt bar enabling multi-turn iterative upgrades (preserving working mechanics, persisting updated code to DB via `update_game_code`, and live-resetting the viewport).
-- **Photorealistic PBR & Post-Processing Pipeline (`GameCanvas.jsx`, `SceneEnvironment.jsx`, `AtmosphereRig.jsx`, `PostFX.jsx`, `SceneCleanup.jsx`):** Uses soft `2048x2048` directional shadows (`[-32, 32]` player-following frustum, `shadow-bias={-0.0003}`, `shadow-normalBias={0.025}`), Drei `<Sky>` + volumetric sun-glare & horizon haze dome (`AtmosphereRig.jsx`), cached `256px` (`frames={1}`) PMREM `<Environment>` `<Lightformer>` rig, and crash-proof `PostFX.jsx` (`PostFXBoundary` + `<EffectComposer multisampling={0} enableNormalPass={false}>`, `<Bloom mipmapBlur luminanceThreshold={1.12} />`, `<ToneMapping mode={ToneMappingMode.ACES_FILMIC} />`) scaled by `Low` | `Balanced` | `Ultra` presets.
+- **Photorealistic PBR & Post-Processing Pipeline (`StudioLightingRig.jsx`, `ProceduralTextures.js`, `GameCanvas.jsx`, `WorldScenery.jsx`, `BiomeTerrain.jsx`):** Uses switchable `@react-three/drei` `<Environment preset>` (`sunset` / `city` / `night` / `dawn` / `park`), `2048x2048` directional shadows, `hemisphereLight` bounce, `<ContactShadows />`, distance atmospheric `<fog>`, offscreen cached `<canvas>` PBR maps (`anisotropy=8`, `RepeatWrapping`) for roads, facades, grass/sand terrain, and brushed metal, and `<EffectComposer multisampling={4}>` (`<Bloom mipmapBlur luminanceThreshold={1.0} intensity={0.45} />`, `<Vignette darkness={0.35} />`, `<ToneMapping mode={ToneMappingMode.ACES_FILMIC} />`).
 - **Mobile Touch Controls (`TouchControls.jsx`, `touchInputState.jsx`):** Auto-detects coarse touch pointers and renders a matte thumb-joystick (left) and Jump/Dash/Fire buttons (right).
 - **Live 3D Thumbnail Capture & Leaderboards (`ThumbnailCapturer.jsx`, `LeaderboardPanel.jsx`, `GameHUD.jsx`, `main.py`, `database.py`):** Captures WebP screenshots via `preserveDrawingBuffer: true`, computes dynamic `finalScore`, increments `plays_count` (`POST /api/games/{game_id}/play`), persists Top-10 sorted records (`POST /api/games/{game_id}/score` accepting `{ player_name, score, time_seconds }`), displays Top-5 leaderboards on both Victory and Run-Ended screens, and provides 1-click `/play/{id}` challenge link copying with confirmation toast.
 

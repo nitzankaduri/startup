@@ -90,10 +90,16 @@ export function remixGame(gameId, instruction, generatedCode = null) {
   });
 }
 
-export function refineGame({ current_code, refinement_prompt, game_title = 'Untitled 3D World', game_id = null }) {
+export function refineGame({ current_world_json = null, current_code = null, refinement_prompt, game_title = 'Untitled 3D World', game_id = null }) {
   return request('/api/games/refine', {
     method: 'POST',
-    body: JSON.stringify({ current_code, refinement_prompt, game_title, ...(game_id ? { game_id } : {}) }),
+    body: JSON.stringify({
+      ...(current_world_json ? { current_world_json } : {}),
+      ...(current_code ? { current_code } : {}),
+      refinement_prompt,
+      game_title,
+      ...(game_id ? { game_id } : {}),
+    }),
   });
 }
 

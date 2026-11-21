@@ -21,6 +21,7 @@ export const useGameStore = create((set, get) => ({
   setGame: (game) => set((s) => ({ currentGame: game, ...buildFreshRunState(game, s.runId, false) })),
   resetRun: () => set((s) => buildFreshRunState(s.currentGame, s.runId, true)),
   setGeneratedCode: (code) => set((s) => (s.currentGame ? { currentGame: { ...s.currentGame, game_config: { ...s.currentGame.game_config, code } } } : {})),
+  setWorldJson: (worldJson) => set((s) => (s.currentGame ? { currentGame: { ...s.currentGame, title: worldJson.title || s.currentGame.title, game_config: { ...s.currentGame.game_config, world_json: worldJson } } } : {})),
   registerHud: (payload = {}) => set((s) => {
     if (!payload || typeof payload !== 'object' || payload.$$typeof || typeof payload.type === 'string' || typeof payload.type === 'function') return s;
     const { meters, actions, controlsHint, ...flat } = payload;

@@ -8,6 +8,7 @@ const QUICK_PROMPTS = ['Night + heavy rain', 'Double jump height', 'Add boss dra
 export function StudioCopilotBar({ theme = 'light' }) {
   const currentGame = useGameStore((s) => s.currentGame);
   const setGeneratedCode = useGameStore((s) => s.setGeneratedCode);
+  const setWorldJson = useGameStore((s) => s.setWorldJson);
   const resetRun = useGameStore((s) => s.resetRun);
   const [expanded, setExpanded] = useState(false);
   const [prompt, setPrompt] = useState('');
@@ -16,8 +17,9 @@ export function StudioCopilotBar({ theme = 'light' }) {
   const [error, setError] = useState('');
 
   if (!currentGame) return null;
+  const activeWorldJson = currentGame?.game_config?.world_json || null;
   const activeCode = currentGame?.game_config?.code || currentGame?.game_config?.generated_code || '';
-  if (!activeCode) return null;
+  if (!activeWorldJson && !activeCode) return null;
 
   const isDark = theme === 'dark';
   const surface = isDark
@@ -37,12 +39,20 @@ export function StudioCopilotBar({ theme = 'light' }) {
     setStatusNote('');
     try {
       const res = await refineGame({
-        current_code: activeCode,
+        current_world_json: activeWorldJson,
+        current_code: activeWorldJson ? null : activeCode,
         refinement_prompt: trimmed,
         game_title: currentGame.title || 'Untitled 3D World',
         game_id: currentGame.id || null,
       });
-      if (res?.code) {
+      if (res?.world_json) {
+        setWorldJson(res.world_json);
+        setStatusNote(res.notes || 'World updated live.');
+        setPrompt('');
+        e?.target?.querySelector?.('input')?.blur?.();
+        const canvas = document.querySelector('[data-sandbox-viewport] canvas');
+        canvas?.focus?.({ preventScroll: true });
+      } else if (res?.code) {
         setGeneratedCode(res.code);
         resetRun();
         setStatusNote(res.notes || 'World upgraded live.');

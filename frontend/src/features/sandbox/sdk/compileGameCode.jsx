@@ -9,11 +9,12 @@ import { useGameStore } from '../store/useGameStore';
 import { useSceneEditorStore } from '../store/useSceneEditorStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import {
-  ArticulatedRunner, AssetCatalog, AutoNormalizeMesh, BiomeStage, CityBlockWorld, CityGrid, ColliderBox, DEFAULT_UPGRADES,
-  DrivableVehicle, DynamicWater, ExplosionBurst, ExtrudedShape, FloatingLabel, FlyableCraft, GameRuntimeProvider,
+  ArticulatedRunner, AssetCatalog, AutoNormalizeMesh, BiomeStage, CartoonPlayerRig, CartoonVFX, ChaseCameraRig, CityBlockWorld, CityGrid, ColliderBox, DEFAULT_UPGRADES,
+  DrivableVehicle, DynamicActionCamera, DynamicWater, ExplosionBurst, ExtrudedShape, FloatingLabel, FlyableCraft, GameRuntimeProvider,
   GridBuilder, HealthBar3D, HighBarrierProp, InstancedFoliage, LatheObject, LowHurdleProp, ObjectiveBeacon,
-  PBR_SURFACES, ParticleBurst, PlayerController, PracticalLights, ProjectilePool, PropModel, RaceTrack, RealisticPhysicsRig, RealisticTerrain,
-  SkeletalActor, SkidMarks, SmartCamera, SmartEntity, SmokeTrail, StudioBackdrop, StudioProp, StylizedCoinProp,
+  PBR_SURFACES, ParticleBurst, PlayerController, PlayerRigController, PracticalLights, ProjectilePool, PropModel, RaceTrack, RealisticPhysicsRig, RealisticTerrain,
+  SkeletalActor, SkidMarks, SmartCamera, SmartEntity, SmartModel, SmokeTrail, StaticPhysicsBody, StudioBackdrop, StudioProp, StylizedCoinProp, StylizedEntity, SubwayToonArtDirector, SubwayToonGroup, WorldPhysicsProvider,
+  JuiceFX, applySubwayToonStyle, emitCartoonVfx, emitJuice, CARTOON_ASSET_CATALOG, MODEL_CATALOG, resolveCartoonAsset, resolveCatalogModel, toToonMaterial,
   StylizedRampTrain, StylizedTrain, SubwayCorridor, WeatherSystem, addImpactTrauma, createPbrTextureSet, createPhysicalMaterial,
   emitPopup, getFeelDelta, getTerrainHeight, motionBus, pbrMaterials, recordComboEvent, registerCollider,
   registerRadarBlip, resolveModelAsset, resolveMovement, setTargetFov, setTerrainConfig, spawnFloatingNumber,
@@ -109,8 +110,8 @@ export function compileGameCode(rawCode, helpers = {}) {
     React: SafeReact, useState, useEffect, useRef, useMemo, useCallback,
     THREE, useFrame: useSafeFrame, useGameLoop, useThree,
     RoundedBox, OrbitControls, Html: SafeHtml, ContactShadows, Float, Text,
-    Physics, RigidBody, CuboidCollider, BallCollider,
-    useGameInput, SmartCamera, RealisticPhysicsRig, stepInertiaBody, SmokeTrail,
+    Physics: ({ children }) => <>{children}</>, RigidBody, CuboidCollider, BallCollider, StaticPhysicsBody, WorldPhysicsProvider,
+    useGameInput, SmartCamera, ChaseCameraRig, DynamicActionCamera, PlayerRigController, CartoonPlayerRig, SmartModel, StylizedEntity, JuiceFX, CartoonVFX, emitJuice, emitCartoonVfx, CARTOON_ASSET_CATALOG, MODEL_CATALOG, resolveCartoonAsset, resolveCatalogModel, SubwayToonArtDirector, SubwayToonGroup, applySubwayToonStyle, toToonMaterial, RealisticPhysicsRig, stepInertiaBody, SmokeTrail,
     PlayerController, ColliderBox, GameRuntimeProvider, useArenaPhysics, useMissionState,
     registerCollider, registerObjectCollider, unregisterCollider, resolveMovement, getTerrainHeight, setTerrainConfig,
     SkeletalActor, ArticulatedRunner, PropModel, AssetCatalog, AutoNormalizeMesh, StudioProp, BiomeStage, WeatherSystem, PracticalLights,

@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { motionBus } from '../sdk/spawnSdk';
+import { SubwayToonGroup } from '../sdk/ToonMaterialHelper';
 import { useGameStore } from '../store/useGameStore';
 import { CharacterModel } from './CharacterModel';
 import { VehicleMesh } from './VehicleMesh';
@@ -112,6 +113,8 @@ export function PlayerMesh({ mode = 'platformer', color = '#FAFAFA', velRef, gro
     }
   });
 
-  if (mode === 'time_trial_racer') return <VehicleMesh color={color} telemetryRef={telemetryRef} />;
-  return <CharacterModel color={color} refs={refs} />;
+  if (mode === 'time_trial_racer') {
+    return <SubwayToonGroup outline thickness={0.03} color="#1E1B4B"><VehicleMesh color={color} telemetryRef={telemetryRef} /></SubwayToonGroup>;
+  }
+  return <SubwayToonGroup outline thickness={0.03} color="#1E1B4B"><CharacterModel color={color} refs={refs} /></SubwayToonGroup>;
 }

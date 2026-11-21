@@ -1,5 +1,76 @@
 # Changelog
 
+## [0.95.0] - 2026-11-21
+### Upgraded
+- **Endless Subway Surfers 3-Lane Corridor, Train Roof Parkour & Hero Chase Framing (`SubwayCorridorScene.jsx`, `CartoonWorldPrefabs.jsx`, `StylizedEntity.jsx`, `worldEntityActors.jsx`, `DynamicActionCamera.jsx`, `backend/game_architect.py`, `backend/spatial_validator.py`):**
+  - Created `SubwayCorridorScene.jsx` streaming infinite ballast railbeds, 6 chrome rails, instanced wooden crossties, flanking pastel storefront shops (`TRADE`, red-white striped awnings), canyon/horizon cliffs, and named theme Gateway Overpass signs (`SALOON`, `ALOHA`, `TOKYO`, `CANDY`, `METRO`).
+  - Built sloped `TrainRampPrefab` wooden crate ramps with matching rotated Rapier `CuboidCollider` and `RigidBody type="kinematicPosition"` moving `subway_train` roofs so players sprint smoothly up ramps onto train rooftops collecting elevated coin arcs.
+  - Locked tight over-the-shoulder Subway Surfers hero chase framing (`DynamicActionCamera.jsx`: `distance=4.9`, `height=3.25`, `lookAheadZ=-8.5`) and defaulted backend blueprints cleanly to `three_lane_track` + `three_lane_runner` (`wild_west` palette included).
+
+## [0.94.0] - 2026-11-21
+### Upgraded & Connected
+- **Stylized Cartoon World Architect & Multilingual Co-Pilot Refinement (`backend/game_architect.py`, `ai_service.py`, `spatial_validator.py`, `world_schemas.py`):**
+  - Enforced the 5 stylized arcade themes (`sunny_city`, `tropical_beach`, `candy_sky`, `tokyo_festival`, `desert_canyon`), cartoon prefab/GLB `modelId`s (`subway_train`, `street_barrier`, `high_barrier`, `cartoon_car`, `police_cruiser`, `city_building`, `gold_coin`, `powerup_magnet`, `powerup_jetpack`, `cartoon_character`, `chaser_guard`), parabolic jump-arc coin rows, and Python 3-lane passability validation (`_ensure_passable_lanes`) guaranteeing fair survivable lanes with zero impossible walls.
+  - Upgraded `POST /api/games/refine` to handle bilingual English & Hebrew Co-Pilot refinements (e.g. fast oncoming trains, tropical beach swaps, jetpack drops) in ~2s.
+  - Connected theme sky gradients (`SubwayToonArtDirector.jsx`), `powerup_jetpack` / `moving_train` handling (`WorldJsonScene.jsx`, `worldEntityActors.jsx`, `CartoonAssetCatalog.js`), `CartoonPlayerRig`, and `StylizedEntity` end-to-end inside `SandboxViewport.jsx`.
+
+## [0.93.0] - 2026-11-21
+### Added
+- **Stylized Cartoon 3D Asset & Prefab Library (`frontend/src/features/sandbox/assets/`):**
+  - Created `CartoonAssetCatalog.js`, `StylizedEntity.jsx`, `CartoonWorldPrefabs.jsx`, `CartoonActorPrefabs.jsx`, and `cartoonDecals.js` (integrated across `WorldJsonScene.jsx`, `worldEntityActors.jsx`, `GameCanvas.jsx`, `spawnSdk.jsx`, and `compileGameCode.jsx`).
+  - Built multi-part stylized prefabs usable standalone or as zero-latency `.glb` fallbacks (`subway_train` with rounded roof, windshield, AC vents, bumper & `CanvasTexture` graffiti decals; `street_barrier` / `high_barrier`; chunky `cartoon_car` / `police_cruiser`; pastel `city_building` with billboards, cornice & striped awnings; `gold_coin`, `powerup_magnet`, `jetpack`; articulated `cartoon_character` / `chaser_guard`), auto-normalized to `y = 0` with `SubwayToonGroup` shading, `#1E1B4B` outlines, and automatic Rapier `RigidBody` colliders.
+
+## [0.92.0] - 2026-11-21
+### Added
+- **Expressive Cartoon Character/Vehicle Rig, Dynamic Action Camera & Cartoon VFX (`frontend/src/features/sandbox/gameplay/`):**
+  - Created `CartoonPlayerRig.jsx` & `CartoonVisualMesh.jsx` (using `@react-three/rapier` and `SubwayToonGroup`) supporting `three_lane_runner` (snappy lane-switching roll tilt, squash-and-stretch takeoff/landing, slide crouch pose, running limb/hoverboard bobbing), `arcade_car` (drift lean, bouncy spring suspension, nitro boost), `third_person_action`, and `flight_combat`, with a permanent raycasted `GroundedBlobShadow` scaling cleanly by jump altitude.
+  - Created `DynamicActionCamera.jsx` (`CameraRig.jsx`, `WorldJsonScene.jsx`) with boost FOV kick, lane/turn banking, and bouncy combo/crash micro-shake.
+  - Created `CartoonVFX.jsx` & `cartoonSfx.jsx` (mounted in `GameCanvas.jsx`, exported in `spawnSdk.jsx` & `compileGameCode.jsx`) delivering golden star/ring coin sparkles, puffy dust clouds, boost speed lines, comical impact stars, and keypress-unlocked arcade SFX (coin ding, whoosh jump, lane swipe, combo chime, crash biff).
+
+## [0.91.0] - 2026-11-21
+### Changed & Added
+- **Stylized Subway Surfers Toon Art Direction (`SubwayToonArtDirector.jsx`, `ToonMaterialHelper.js`):**
+  - Locked global sandbox lighting in `SubwayToonArtDirector.jsx` (integrated in `GameCanvas.jsx`) with warm key directional light (`#FFF7E0`, `2.2`, `2048x2048` shadows), `#7DD3FC` / `#FDE68A` sky-to-sand hemisphere bounce, `<Environment preset="park" />`, cerulean-to-cream gradient sky dome, soft distance haze (`#BAE6FD`), and `<EffectComposer multisampling={4}>` with `<Bloom mipmapBlur luminanceThreshold={1.1} intensity={0.35} />`, `<BrightnessContrast>`, `<HueSaturation>`, and `ACES_FILMIC` tone mapping.
+  - Created `ToonMaterialHelper.js` providing a cached 3-step `THREE.DataTexture` (`NearestFilter`) toon ramp, automatic washed-out gray replacement via `saturateToonColor`, `MeshToonMaterial` conversion, and `SubwayToonGroup` (`<Outlines thickness={0.03} color="#1E1B4B" />`) across `SmartModel`, `RigVisuals`, `PlayerMesh`, `StylizedTrain`, and `StylizedObstacles`.
+
+## [0.90.0] - 2026-11-21
+### Connected & Enhanced
+- **Unified `SandboxViewport` World Blueprint Pipeline (`SandboxViewport.jsx`, `GameCanvas.jsx`, `WorldJsonScene.jsx`, `worldEntityActors.jsx`, `HUDModeWidgets.jsx`, `ThumbnailCapturer.jsx`):**
+  - Connected `StudioLightingRig`, Rapier `<WorldPhysicsProvider>`, `SmartModel` `.glb` assets, `PlayerRigController`, `ChaseCameraRig`, and `JuiceFX` cleanly through `SandboxViewport.jsx` + `WorldJsonScene.jsx` (rendering `CityGridGenerator`, `TrackGenerator`, 3-lane tracks, and `BiomeStage` layouts with live patrol/chase/boss actors and win/loss triggers).
+  - Wired live HUD telemetry (`hp`, `score`, `$cash`, `speedKmh`, `timer`, and `MinimapHUD` blips) in `HUDModeWidgets.jsx` + `MinimapHUD.jsx`.
+  - Preserved `<Canvas>` & keyboard focus seamlessly across Studio Co-Pilot `worldSpec` hot-swaps (`SandboxViewport.jsx`, `StudioCopilotBar.jsx`).
+  - Upgraded `ThumbnailCapturer.jsx` to capture crisp WebP 3D cover thumbnails `1.5s` after studio lighting and `.glb` models finish rendering.
+
+## [0.89.0] - 2026-11-21
+### Changed & Added
+- **Fast Structured 3D World JSON Pipeline & Instant Co-Pilot Refinement (`backend/game_architect.py`, `ai_service.py`, `world_schemas.py`, `spatial_validator.py`, `main.py`):**
+  - Replaced slow multi-pass JSX code synthesis with fast `<5s` structured `WorldBlueprintJSON` synthesis outputting `theme`, `lightingPreset` (`sunset` | `night` | `city` | `dawn`), `weather`, `worldLayout` (`city_grid` | `three_lane_track` | `race_circuit` | `open_biome`), `playerRig` (`arcade_car` | `three_lane_runner` | `third_person_action` | `flight_combat`), `entities[]` (25–50 entities mapped to valid `.glb` `modelId`s), and `rules` (`winCondition`, `targetScore`, `timeLimit`).
+  - Built Python `spatial_validator.py` (`sanitize_world_json`) to snap city vehicles/checkpoints onto road centerlines (`[-100, -50, 0, 50, 100]`), keep 3-lane track entities aligned (`[-3.2, 0.0, 3.2]`), and keep all buildings/obstacles clear of roads and `spawn.position`.
+  - Upgraded `POST /api/games/refine` in `backend/main.py` (`refine_world_json`) to accept `{ current_world_json, refinement_prompt }` for ~2–3s live Co-Pilot updates (adding bosses, changing weather/lighting, swapping rigs/vehicles), persisted via `update_game_world_json` (`database.py`) and rendered deterministically on the client via `WorldJsonScene.jsx`.
+
+## [0.88.0] - 2026-11-21
+### Added
+- **Bundled 3D `.glb` Assets, Auto-Normalized Loader & JuiceFX (`frontend/public/models/`, `frontend/src/features/sandbox/assets/`):**
+  - Bundled 9 binary glTF 2.0 `.glb` models in `frontend/public/models/` (`sports_car.glb`, `police_cruiser.glb`, `skyscraper.glb`, `tree.glb`, `rock.glb`, `coin.glb`, `drone.glb`, `spaceship.glb`, `scifi_crate.glb`).
+  - Created `ModelCatalog.js`, `SmartModel.jsx`, and `DetailedModelFallback.jsx`: maps bundled `.glb` + CC0 CDN assets with multi-part detailed fallbacks (wheels, spoilers, translucent glass windshields, glowing taillights), computes `THREE.Box3` uniform normalization grounded flush at `y = 0`, and mounts exact `RigidBody` + `CuboidCollider` bounds automatically.
+  - Created `JuiceFX.jsx` and `juiceAudio.js` (integrated in `GameCanvas.jsx`, `spawnSdk.jsx`, and `compileGameCode.jsx`): single 240-instance GPU particle pool for collision sparks, tire drift smoke, nitro exhaust flames, coin pickup sparkles, and enemy explosions paired with first-keypress-unlocked spatial `StereoPannerNode` Web Audio SFX (engine hum, drift screech, coin chime, crash thud).
+
+## [0.87.0] - 2026-11-21
+### Added
+- **Rapier Physics World, Static Colliders & Universal 4-Rig Controller (`frontend/src/features/sandbox/physics/`):**
+  - Created `WorldPhysicsProvider.jsx` wrapping the active 3D scene tree (`GameCanvas.jsx`) in `<Physics gravity={[0, -22, 0]}>` plus context-guarded `<StaticPhysicsBody type="fixed">` colliders automatically mounted on roads, terrain (`RealisticTerrain.jsx`), city grids/tracks (`CityRoadBuilder.jsx`, `CityBlockWorld.jsx`), and skyline buildings (`WorldScenery.jsx`).
+  - Created `PlayerRigController.jsx`, `rigHelpers.jsx`, `actionFlightRigs.jsx`, and `RigVisuals.jsx` implementing 4 Rapier-backed game rigs: `arcade_car` (WASD steering/acceleration, lateral tire grip/drift friction, Space handbrake, Shift nitro flame/smoke trail, twin bumper `spotLight` headlights), `three_lane_runner` (A/D lane switch, W/Space jump, S slide), `third_person_action` (camera-relative WASD, double-jump, Shift dash, click melee/projectile), and `flight_combat` (pitch/yaw/roll banking, Shift boost throttle, twin laser firing).
+  - Created `ChaseCameraRig.jsx` (wired via `CameraRig.jsx` for follow/chase cameras) with critically-damped spring-arm tracking, wall raycast push-in, velocity FOV punch, corner roll tilt, and collision trauma micro-shake.
+
+## [0.86.0] - 2026-11-21
+### Added & Upgraded
+- **Studio-Grade PBR Lighting Rig & Post-Processing (`StudioLightingRig.jsx`, `GameCanvas.jsx`):**
+  - Created `StudioLightingRig.jsx` providing switchable `@react-three/drei` `<Environment preset={...} />` reflections (`sunset`, `city`, `night`, `dawn`, `park`), high-resolution shadow-casting `directionalLight` (`shadow-mapSize={[2048, 2048]}`), `hemisphereLight` bounce fill, `<ContactShadows />`, distance atmospheric `<fog>`, and `<EffectComposer multisampling={4}>` with `<Bloom mipmapBlur luminanceThreshold={1.0} intensity={0.45} />`, `<Vignette darkness={0.35} />`, and `<ToneMapping mode={ToneMappingMode.ACES_FILMIC} />`.
+  - Integrated `<StudioLightingRig>` into `GameCanvas.jsx` replacing legacy `<SceneEnvironment>` / `<PostFX>` wiring cleanly with ErrorBoundary + Suspense fallbacks.
+- **Procedural Canvas PBR Textures (`ProceduralTextures.js`, `WorldScenery.jsx`, `BiomeTerrain.jsx`, `GameCanvas.jsx`):**
+  - Created `ProceduralTextures.js` generating cached offscreen `<canvas>` PBR maps (`CanvasTexture` with `RepeatWrapping` and `anisotropy = 8`) for asphalt roads (mineral grain + tire paths + lane markings), concrete/glass building facades (lit warm/cool interior windows + emissiveMap + roughnessMap), grass/sand terrain textures, and brushed metal streaks.
+  - Applied procedural PBR texture maps across starting platforms/pedestals (`GameCanvas.jsx`), skyline buildings/roofs/balconies/awnings/tanks (`WorldScenery.jsx`), and sculpted mountains/cliffs (`BiomeTerrain.jsx`) so no background or structural mesh renders as a flat untextured solid color.
+
 ## [0.85.1] - 2026-11-20
 ### Fixed
 - **Root-Level `registerHud(React.createElement)` Crash & Circular Store Guard (`useGameStore.jsx`, `HUDModeWidgets.jsx`, `SkeletalActor.jsx`, `ProceduralAssetFallbacks.jsx`, `DynamicGameRunner.jsx`, `code_validator.py`, `prompts.py`):**

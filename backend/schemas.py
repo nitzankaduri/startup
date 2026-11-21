@@ -1,6 +1,7 @@
 from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
 from blueprint_schemas import GameBlueprint
+from world_schemas import WorldBlueprintJSON
 
 Vec3 = List[float]
 GameMode = Literal["platformer", "arena_shooter", "time_trial_racer", "survival_waves", "arcade_runner"]
@@ -30,6 +31,7 @@ class PlayerConfig(BaseModel):
     speed: float = Field(default=8.5, ge=2.0, le=20.0)
     jump_force: float = Field(default=9.5, ge=3.0, le=25.0)
     color: str = "#FAFAFA"
+    rig: Optional[str] = None
 
 
 class GoalConfig(BaseModel):
@@ -68,6 +70,7 @@ class GameConfig(BaseModel):
     controls_hint: Optional[str] = None
     architecture_plan: Optional[ArchitecturePlan] = None
     blueprint: Optional[GameBlueprint] = None
+    world_json: Optional[WorldBlueprintJSON] = None
     code: Optional[str] = None
     generation_source: str = "ai_live"
     model_id: str = "gemini-3.5-flash"

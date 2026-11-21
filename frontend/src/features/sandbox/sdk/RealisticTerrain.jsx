@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
+import { StaticPhysicsBody } from '../physics/WorldPhysicsProvider';
 import { createPbrTextureSet } from './pbrMaterials';
 import { fbm2D } from './pbrNoise';
 
@@ -94,5 +95,9 @@ export function RealisticTerrain({
 
   useEffect(() => () => { geometry.dispose(); material.dispose(); }, [geometry, material]);
 
-  return <mesh geometry={geometry} material={material} position={position} receiveShadow castShadow />;
+  return (
+    <StaticPhysicsBody colliders="trimesh" friction={0.88} position={position}>
+      <mesh geometry={geometry} material={material} receiveShadow castShadow />
+    </StaticPhysicsBody>
+  );
 }

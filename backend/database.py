@@ -133,3 +133,16 @@ async def update_game_code(game_id: str, code: str) -> bool:
                 cfg["generated_code"] = code
                 return True
         return False
+
+
+async def update_game_world_json(game_id: str, world_json: Dict[str, Any]) -> bool:
+    try:
+        col = _get_collection()
+        res = await col.update_one({"id": game_id}, {"$set": {"game_config.world_json": world_json, "title": world_json.get("title", "Spawn 3D World")}})
+        return res.matched_count > 0
+    except Exception:
+        for item in _memory_store:
+            if item["id"] == game_id:
+                item.setdefault("game_config", {})["world_json"] = world_json
+                return True
+        return False

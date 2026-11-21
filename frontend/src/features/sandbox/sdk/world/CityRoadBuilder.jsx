@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo } from 'react';
 import { RoundedBox } from '@react-three/drei';
+import { StaticPhysicsBody } from '../../physics/WorldPhysicsProvider';
 import { StudioProp } from '../assets/StudioProps';
 import { registerCollider, unregisterCollider } from '../runtime/useArenaPhysics';
 import { createCityRoadTextures } from '../worlds/worldTextures';
@@ -37,10 +38,12 @@ export function CityGrid({ blocks = 4, roadWidth = 14, blockSize = 36 }) {
 
   return (
     <group>
-      <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[totalSpan + 24, totalSpan + 24]} />
-        <meshStandardMaterial color="#353942" roughness={0.9} />
-      </mesh>
+      <StaticPhysicsBody colliders="cuboid" friction={0.88}>
+        <mesh position={[0, -0.26, 0]} receiveShadow>
+          <boxGeometry args={[totalSpan + 24, 0.5, totalSpan + 24]} />
+          <meshStandardMaterial color="#353942" roughness={0.9} />
+        </mesh>
+      </StaticPhysicsBody>
       {roads.map((pos, i) => (
         <group key={i}>
           <mesh position={[pos, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -53,12 +56,14 @@ export function CityGrid({ blocks = 4, roadWidth = 14, blockSize = 36 }) {
       ))}
       {blockList.map((blk, bi) => (
         <group key={bi}>
-          <RoundedBox args={[blockSize, 0.25, blockSize]} radius={0.04} position={[blk.bx, 0.125, blk.bz]} receiveShadow>
-            <meshStandardMaterial color="#D6D0C4" roughness={0.86} />
-          </RoundedBox>
-          {blk.buildings.map((b, i) => (
-            <StudioProp key={i} type={b.kind} position={[b.x, 0.25, b.z]} scale={b.scale} color={b.color} colliderPadding={0.35} />
-          ))}
+          <StaticPhysicsBody colliders="cuboid" friction={0.88}>
+            <RoundedBox args={[blockSize, 0.25, blockSize]} radius={0.04} position={[blk.bx, 0.125, blk.bz]} receiveShadow>
+              <meshStandardMaterial color="#D6D0C4" roughness={0.86} />
+            </RoundedBox>
+            {blk.buildings.map((b, i) => (
+              <StudioProp key={i} type={b.kind} position={[b.x, 0.25, b.z]} scale={b.scale} color={b.color} colliderPadding={0.35} />
+            ))}
+          </StaticPhysicsBody>
         </group>
       ))}
       {lamps.map((p, i) => <StudioProp key={i} type="streetlamp" position={p} colliderPadding={0.1} />)}
@@ -95,21 +100,25 @@ export function RaceTrack({ waypoints = DEFAULT_TRACK_WAYPOINTS, width = 16, onC
 
   return (
     <group>
-      <mesh geometry={roadGeo} receiveShadow>
-        <meshStandardMaterial {...roadTex} side={2} />
-      </mesh>
+      <StaticPhysicsBody colliders="trimesh" friction={0.88}>
+        <mesh geometry={roadGeo} receiveShadow>
+          <meshStandardMaterial {...roadTex} side={2} />
+        </mesh>
+      </StaticPhysicsBody>
       {curbSegs.map((c, i) => (
         <mesh key={i} position={[c.x, c.y, c.z]} rotation={[0, c.yaw, 0]} receiveShadow>
           <boxGeometry args={[0.9, 0.12, c.len]} />
           <meshStandardMaterial color={c.red ? '#C83E2B' : '#F6F4EF'} roughness={0.78} />
         </mesh>
       ))}
-      {barriers.map((b, i) => (
-        <mesh key={i} position={[b.x, b.y + 0.55, b.z]} rotation={[0, b.yaw, 0]} castShadow receiveShadow>
-          <boxGeometry args={[0.55, 1.1, b.len]} />
-          <meshStandardMaterial color="#8B8D91" roughness={0.82} />
-        </mesh>
-      ))}
+      <StaticPhysicsBody colliders="cuboid" friction={0.45}>
+        {barriers.map((b, i) => (
+          <mesh key={i} position={[b.x, b.y + 0.55, b.z]} rotation={[0, b.yaw, 0]} castShadow receiveShadow>
+            <boxGeometry args={[0.55, 1.1, b.len]} />
+            <meshStandardMaterial color="#8B8D91" roughness={0.82} />
+          </mesh>
+        ))}
+      </StaticPhysicsBody>
       {gates.map((g) => (
         <group key={g.id} position={[g.x, g.y, g.z]} rotation={[0, g.yaw, 0]}>
           {[-width * 0.52, width * 0.52].map((x) => (
@@ -123,3 +132,5 @@ export function RaceTrack({ waypoints = DEFAULT_TRACK_WAYPOINTS, width = 16, onC
     </group>
   );
 }
+
+export { CityGrid as CityGridGenerator, RaceTrack as TrackGenerator };
