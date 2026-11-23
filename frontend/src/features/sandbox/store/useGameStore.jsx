@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { soundEngine } from '../../../shared/audio/soundEngine';
 import { emitPopup, isPowerupActive, motionBus } from '../sdk/motionBus';
 import { buildFreshRunState, computeFinalScore } from './gameStoreHelpers';
+import { useSettingsStore } from './useSettingsStore';
 
 export const DASH_COOLDOWN_MS = 1400;
 
@@ -18,8 +19,14 @@ export const useGameStore = create((set, get) => ({
   toggleEditor: () => set((s) => ({ isEditorOpen: !s.isEditorOpen })),
   setEditorOpen: (isEditorOpen) => set({ isEditorOpen }),
   toggleMute: () => set((s) => { const n = !s.isMuted; soundEngine.setMuted(n); return { isMuted: n }; }),
-  setGame: (game) => set((s) => ({ currentGame: game, ...buildFreshRunState(game, s.runId, false) })),
-  resetRun: () => set((s) => buildFreshRunState(s.currentGame, s.runId, true)),
+  setGame: (game) => {
+    useSettingsStore.getState().setPaused(false);
+    set((s) => ({ currentGame: game, isEditorOpen: false, ...buildFreshRunState(game, s.runId, true) }));
+  },
+  resetRun: () => {
+    useSettingsStore.getState().setPaused(false);
+    set((s) => ({ isEditorOpen: false, ...buildFreshRunState(s.currentGame, s.runId, true) }));
+  },
   setGeneratedCode: (code) => set((s) => (s.currentGame ? { currentGame: { ...s.currentGame, game_config: { ...s.currentGame.game_config, code } } } : {})),
   setWorldJson: (worldJson) => set((s) => (s.currentGame ? { currentGame: { ...s.currentGame, title: worldJson.title || s.currentGame.title, game_config: { ...s.currentGame.game_config, world_json: worldJson } } } : {})),
   registerHud: (payload = {}) => set((s) => {
@@ -107,15 +114,13 @@ export const useGameStore = create((set, get) => ({
   registerKill: () => {
     const { gameState, kills, targetKills, currentGame } = get();
     if (gameState !== 'playing') return;
-    const nextKills = kills + 1;
-    set({ kills: nextKills });
+    const nextKills = kills + 1; set({ kills: nextKills });
     if (currentGame?.game_config?.game_mode === 'arena_shooter' && nextKills >= targetKills) get().triggerWin();
   },
   damagePlayer: (amount) => {
     const { gameState, hp } = get();
     if (gameState !== 'playing') return;
-    const nextHp = Math.max(0, hp - amount);
-    soundEngine.playDamage();
+    const nextHp = Math.max(0, hp - amount); soundEngine.playDamage();
     set({ hp: nextHp, shakeAt: performance.now() });
     if (nextHp <= 0) get().triggerGameOver(true);
   },
@@ -127,23 +132,15 @@ export const useGameStore = create((set, get) => ({
   triggerHitMarker: () => set({ hitMarkerAt: performance.now() }),
   triggerShake: () => set({ shakeAt: performance.now() }),
   triggerGameOver: (withShake = false) => {
-    const s = get();
-    if (s.gameState !== 'playing') return;
-    soundEngine.playFail();
+    const s = get(); if (s.gameState !== 'playing') return; soundEngine.playFail();
     const runDurationMs = Math.max(100, Math.round(performance.now() - s.runStartedAt));
     const finalScore = Math.max(Math.round(s.runnerScore), s.score * 100 + s.kills * 120 + s.checkpointsPassed * 150);
     set({ gameState: 'gameover', runDurationMs, finalScore, ...(withShake ? { shakeAt: performance.now() } : {}) });
   },
   triggerWin: () => {
-    const s = get();
-    if (s.gameState !== 'playing') return;
-    soundEngine.playWin();
+    const s = get(); if (s.gameState !== 'playing') return; soundEngine.playWin();
     const runDurationMs = Math.max(100, Math.round(performance.now() - s.runStartedAt));
-    const finalScore = computeFinalScore({
-      gameMode: s.currentGame?.game_config?.game_mode || 'platformer',
-      collectedCount: s.score, kills: s.kills, checkpointsPassed: s.checkpointsPassed,
-      timeLeft: s.timeLeft, driftBoosts: s.driftBoosts, runnerScore: s.runnerScore, runDurationMs,
-    });
+    const finalScore = computeFinalScore({ gameMode: s.currentGame?.game_config?.game_mode || 'platformer', collectedCount: s.score, kills: s.kills, checkpointsPassed: s.checkpointsPassed, timeLeft: s.timeLeft, driftBoosts: s.driftBoosts, runnerScore: s.runnerScore, runDurationMs });
     set({ gameState: 'won', runDurationMs, finalScore });
   },
 }));

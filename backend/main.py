@@ -42,6 +42,7 @@ async def health_check():
 
 
 @app.post("/api/generate", response_model=GenerateResponse)
+@app.post("/api/games/generate", response_model=GenerateResponse)
 async def generate_game(payload: GenerateRequest):
     game_config = await generate_game_config(payload.prompt)
     game_id = str(uuid.uuid4())[:8]
@@ -82,9 +83,11 @@ async def remix_game(payload: RemixRequest):
 
 @app.post("/api/games/refine", response_model=WorldRefineResponse)
 async def refine_world(payload: WorldRefineRequest):
-    result = await refine_world_json(
-        payload.current_world_json, payload.refinement_prompt, payload.game_title, payload.current_code
-    )
+    spec = payload.currentSpec or payload.current_world_json
+    prompt_txt = (payload.instruction or payload.refinement_prompt or "").strip()
+    if not prompt_txt:
+        raise HTTPException(status_code=422, detail="Provide instruction or refinement_prompt.")
+    result = await refine_world_json(spec, prompt_txt, payload.game_title, payload.current_code)
     if payload.game_id:
         if result.world_json is not None:
             await update_game_world_json(payload.game_id, result.world_json.model_dump())

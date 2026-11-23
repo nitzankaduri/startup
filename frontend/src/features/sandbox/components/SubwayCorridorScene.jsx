@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { RoundedBox } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { CuboidCollider } from '@react-three/rapier';
 import * as THREE from 'three';
 import { createBillboardTexture, createBuildingAwningTexture } from '../assets/cartoonDecals';
-import { StaticPhysicsBody } from '../physics/WorldPhysicsProvider';
+import { getBallastTrackTexture, getBuildingFacadeTexture } from '../kernel/ProceduralTextureAtlas';
 import { motionBus } from '../sdk/motionBus';
-import { createBallastTrackTextures } from '../sdk/proceduralTextures';
 import { SubwayToonGroup } from '../sdk/ToonMaterialHelper';
 
 const RAILS_X = [-4.0, -2.4, -0.8, 0.8, 2.4, 4.0];
@@ -29,7 +27,9 @@ export function SubwayCorridorScene({ theme = 'sunny_city', signLabel = 'METRO' 
   const tiesRef = useRef(null);
   const cliffsRef = useRef(null);
   const pal = THEME_CORRIDOR[theme] || THEME_CORRIDOR.sunny_city;
-  const ballast = useMemo(() => createBallastTrackTextures(3, 42), []);
+  const ballastMap = useMemo(() => getBallastTrackTexture(1, 28), []);
+  const facadeA = useMemo(() => getBuildingFacadeTexture('#FDE68A'), []);
+  const facadeB = useMemo(() => getBuildingFacadeTexture('#93C5FD'), []);
   const signTex = useMemo(() => createBillboardTexture(pal.signBg, (signLabel || 'METRO').slice(0, 10)), [pal.signBg, signLabel]);
   const awningTex = useMemo(() => createBuildingAwningTexture('#E11D48'), []);
 
@@ -68,14 +68,10 @@ export function SubwayCorridorScene({ theme = 'sunny_city', signLabel = 'METRO' 
 
   return (
     <group>
-      <StaticPhysicsBody colliders={false} friction={0.85}>
-        <CuboidCollider args={[18, 0.5, 900]} position={[0, -0.5, -400]} />
-      </StaticPhysicsBody>
-
       <group ref={trackWrapRef}>
-        <mesh position={[0, -0.02, -75]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <mesh position={[0, -0.02, -75]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[11.6, 260]} />
-          <meshStandardMaterial {...ballast} />
+          <meshStandardMaterial map={ballastMap} roughness={0.65} metalness={0.08} />
         </mesh>
         {[-15.5, 15.5].map((sx) => (
           <mesh key={sx} position={[sx, -0.04, -75]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -116,7 +112,7 @@ export function SubwayCorridorScene({ theme = 'sunny_city', signLabel = 'METRO' 
               </RoundedBox>
               {[-10.2, 10.2].map((bx, k) => (
                 <group key={bx} position={[bx, 0, -4]}>
-                  <mesh position={[0, 3.6, 0]} castShadow><boxGeometry args={[5.8, 7.2, 5.2]} /><meshStandardMaterial color={k === 0 ? '#FDE68A' : '#FCA5A5'} /></mesh>
+                  <mesh position={[0, 3.6, 0]}><boxGeometry args={[5.8, 7.2, 5.2]} /><meshStandardMaterial map={k === 0 ? facadeA : facadeB} roughness={0.55} metalness={0.05} /></mesh>
                   <mesh position={[k === 0 ? 3.1 : -3.1, 2.3, 0]} rotation={[0, k === 0 ? Math.PI / 2 : -Math.PI / 2, 0]}><boxGeometry args={[4.4, 0.15, 1.2]} /><meshStandardMaterial map={awningTex} /></mesh>
                 </group>
               ))}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { QuickEditDrawer } from './features/editor/QuickEditDrawer';
+import { LiveGameEditor } from './features/editor/LiveGameEditor';
 import { SceneInspector } from './features/editor/SceneInspector';
 import { LobbyPage } from './features/lobby/LobbyPage';
 import { GameHUD } from './features/sandbox/components/GameHUD';
@@ -100,7 +100,7 @@ export function App() {
         <StudioCopilotBar theme={theme} />
         <SceneInspector />
         <PublishModal />
-        <QuickEditDrawer onRemixed={(remixed) => openGame(remixed, true)} />
+        <LiveGameEditor />
       </div>
     );
   }

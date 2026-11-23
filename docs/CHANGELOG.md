@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.96.2] - 2026-11-23
+### Fixed
+- **Live Gemini Model Failover & Thinking Budget Hang (`backend/game_architect.py`, `backend/ai_service.py`):**
+  - Replaced retired `gemini-2.5-flash-lite` / `gemini-2.0-flash` fallback entries (which threw `404 NOT_FOUND` when `gemini-3.1-flash-lite` hit `503 UNAVAILABLE`) with the live verified model chain (`gemini-3.6-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`).
+  - Removed `thinking_budget=0` (which returned `400 INVALID_ARGUMENT` on `flash-lite` and stalled `3.5`/`3.6-flash`) and tuned the architect prompt to synthesize `12-16` key entities before `spatial_validator.py` expands the full `34+`-entity corridor.
+
+## [0.96.1] - 2026-11-23
+### Added & Verified
+- **Automated CC0 Cartoon GLB Asset Fetcher & Texture Packing (`frontend/scripts/fetch_cartoon_assets.mjs`, `CartoonAssetCatalog.js`, `StylizedEntity.jsx`, `ToonMaterialHelper.js`):**
+  - Created `fetch_cartoon_assets.mjs` downloading 12 CC0 Kenney `.glb` models (cars, subway train, street barrier, city buildings, gold coin, trees, and rigged animated characters) into `frontend/public/models/` while embedding external `Textures/colormap.png` buffers directly into each `.glb` binary for zero 404 console errors.
+  - Wired the local `.glb` paths + character animation clips (`idle`, `walk`, `sprint`, `jump`) into `CartoonAssetCatalog.js` with procedural cartoon prefabs preserved as instant fallbacks.
+  - Hardened `StylizedEntity.jsx` (`rotationY` before `Box3` normalization + spinning coin bobbing) and `ToonMaterialHelper.js` (`SkinnedMesh` toon conversion + unmounted portal filtering).
+
+## [0.96.0] - 2026-11-23
+### Upgraded & Hardened
+- **Stylized Cartoon Prefabs, Slide-Under Colliders & Architect Anti-Overlap (`CartoonWorldPrefabs.jsx`, `CartoonActorPrefabs.jsx`, `StylizedEntity.jsx`, `CartoonAssetCatalog.js`, `backend/spatial_validator.py`, `backend/world_schemas.py`, `backend/ai_service.py`, `docs/ARCHITECTURE.md`):**
+  - Added dual-end train windshields/headlights & framed passenger windows (`SubwayTrainPrefab`), grounded barrier feet (`StreetBarrierPrefab`), framed side/front windows (`CartoonCityBuildingPrefab`), beveled star-emblem `gold_coin` (`CartoonPickupPrefab`), dual red/blue police lightbar + front windshield (`CartoonCarPrefab`), and backpack/badge/eyes details (`CartoonCharacterPrefab`).
+  - Added raised overhead crossbar collider (`y = 2.02`) for `high_barrier` in `StylizedEntity.jsx` and `jump_ramp` alias normalization across `CartoonAssetCatalog.js` + `backend/world_schemas.py`.
+  - Tightened `spatial_validator.py` (`_ensure_passable_lanes`, `_supplement_cartoon`) to eliminate overlapping obstacle/building colliders and guarantee `chaser_guard` variety, and added base-blueprint merging inside `ai_service.py` (`refine_world_json`).
+
 ## [0.95.0] - 2026-11-21
 ### Upgraded
 - **Endless Subway Surfers 3-Lane Corridor, Train Roof Parkour & Hero Chase Framing (`SubwayCorridorScene.jsx`, `CartoonWorldPrefabs.jsx`, `StylizedEntity.jsx`, `worldEntityActors.jsx`, `DynamicActionCamera.jsx`, `backend/game_architect.py`, `backend/spatial_validator.py`):**

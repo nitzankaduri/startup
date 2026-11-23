@@ -15,7 +15,7 @@ export function extractInitialMetrics(game) {
   };
 }
 
-export function buildFreshRunState(game, runId, started = false) {
+export function buildFreshRunState(game, runId, started = true) {
   const m = extractInitialMetrics(game);
   const cfg = game?.game_config || {};
   return {

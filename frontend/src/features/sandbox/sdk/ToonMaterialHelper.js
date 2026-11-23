@@ -5,6 +5,7 @@ import * as THREE from 'three';
 
 const SUBWAY_SWATCHES = ['#F59E0B', '#D96B27', '#0EA5E9', '#10B981', '#4F46E5', '#E11D48', '#FBBF24', '#F97316'];
 const MAT_CACHE = new WeakMap();
+const TOON_MAT_CACHE = new Map();
 let GRADIENT_TEX = null;
 
 /** Cached 3-step nearest-neighbor DataTexture creating crisp cel-shaded light/mid/shadow bands. */
@@ -39,8 +40,16 @@ export function toToonMaterial(src, seed = 0) {
   if (src.isMeshToonMaterial && src.gradientMap === getToonGradientMap()) return src;
   if (MAT_CACHE.has(src)) return MAT_CACHE.get(src);
 
+  const col = saturateToonColor(src.color, seed);
+  const key = `${col.getHexString()}|${src.map?.uuid || ''}|${src.opacity ?? 1}|${Boolean(src.transparent)}|${src.emissiveIntensity ?? 1}`;
+  if (TOON_MAT_CACHE.has(key)) {
+    const cached = TOON_MAT_CACHE.get(key);
+    MAT_CACHE.set(src, cached);
+    return cached;
+  }
+
   const toon = new THREE.MeshToonMaterial({
-    color: saturateToonColor(src.color, seed),
+    color: col,
     gradientMap: getToonGradientMap(),
     map: src.map || null,
     emissive: src.emissive ? src.emissive.clone() : new THREE.Color('#000000'),
@@ -52,6 +61,7 @@ export function toToonMaterial(src, seed = 0) {
     depthWrite: src.depthWrite ?? true,
     vertexColors: Boolean(src.vertexColors),
   });
+  if (TOON_MAT_CACHE.size < 256) TOON_MAT_CACHE.set(key, toon);
   MAT_CACHE.set(src, toon);
   return toon;
 }
@@ -62,7 +72,7 @@ export function applySubwayToonStyle(root, { outlines = true, seed = 0 } = {}) {
   const targets = [];
   let idx = seed;
   root.traverse((obj) => {
-    if (!obj.isMesh || obj.userData?.isToonOutline || obj.isSkinnedMesh) return;
+    if (!obj.isMesh || obj.userData?.isToonOutline) return;
     obj.castShadow = true;
     obj.receiveShadow = true;
     if (Array.isArray(obj.material)) obj.material = obj.material.map((m) => toToonMaterial(m, idx++));
@@ -70,7 +80,7 @@ export function applySubwayToonStyle(root, { outlines = true, seed = 0 } = {}) {
 
     const hasPos = Boolean(obj.geometry?.attributes?.position);
     const opaque = !obj.material?.transparent || (obj.material?.opacity ?? 1) > 0.6;
-    if (outlines && hasPos && !obj.isInstancedMesh && !obj.userData?.skipOutline && opaque) {
+    if (outlines && !obj.isSkinnedMesh && hasPos && !obj.isInstancedMesh && !obj.userData?.skipOutline && opaque) {
       targets.push(obj);
     }
   });
@@ -95,7 +105,7 @@ export function SubwayToonGroup({ outline = true, thickness = 0.03, color = '#1E
     { ref: groupRef },
     children,
     outline
-      ? meshes.map((m) => createPortal(React.createElement(Outlines, { key: m.uuid, thickness, color }), m))
+      ? meshes.filter((m) => m?.parent).map((m) => createPortal(React.createElement(Outlines, { key: m.uuid, thickness, color }), m))
       : null
   );
 }

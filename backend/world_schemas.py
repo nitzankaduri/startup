@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 CARTOON_THEMES = {"sunny_city", "tropical_beach", "candy_sky", "tokyo_festival", "desert_canyon", "wild_west"}
 VALID_MODELS = {
-    "subway_train", "train_ramp", "street_barrier", "high_barrier", "cartoon_car", "police_cruiser", "city_building",
+    "subway_train", "train_ramp", "jump_ramp", "street_barrier", "high_barrier", "cartoon_car", "police_cruiser", "city_building",
     "gold_coin", "powerup_magnet", "powerup_jetpack", "jetpack", "cartoon_character", "chaser_guard",
     "sports_car", "skyscraper", "tree", "rock", "coin", "drone", "spaceship", "scifi_crate", "robot", "soldier", "fox", "truck",
 }
@@ -76,6 +76,35 @@ class WorldBlueprintJSON(BaseModel):
     worldLayout: WorldLayoutType = "three_lane_track"
     playerRig: PlayerRigType = "three_lane_runner"
     playerModelId: str = "cartoon_character"
+    archetype: str = "endless_runner"
+    themeConfig: Dict[str, Any] = Field(default_factory=dict)
+    entitySkins: Dict[str, Any] = Field(default_factory=dict)
+    mechanics: Dict[str, Any] = Field(default_factory=dict)
+    hudLabels: Dict[str, str] = Field(default_factory=dict)
+    mode: str = "endless_runner"
+    themeId: str = "subway_trains"
+    playerType: str = "runner_kid"
+    obstacleType: str = "subway_train"
+    enemyType: str = "chaser_guard"
+    collectibleType: str = "gold_coin"
+    palette: Dict[str, Any] = Field(default_factory=dict)
+    objectiveText: str = "Collect 30 Coins"
+    winTarget: int = 30
+    canShoot: bool = False
+    enemiesShoot: bool = False
+    speed: float = 12.0
+    jumpPower: float = 13.0
+    spawnRate: float = 1.0
+    powerupsEnabled: List[str] = Field(default_factory=lambda: ["shield", "triple_shot", "magnet", "jetpack_boost"])
+    playerParts: List[Dict[str, Any]] = Field(default_factory=list)
+    enemyParts: List[Dict[str, Any]] = Field(default_factory=list)
+    obstacleParts: List[Dict[str, Any]] = Field(default_factory=list)
+    collectibleParts: List[Dict[str, Any]] = Field(default_factory=list)
+    bossConfig: Optional[Dict[str, Any]] = None
+    worldPalette: Dict[str, Any] = Field(default_factory=dict)
+    playerConfig: Dict[str, Any] = Field(default_factory=dict)
+    enemyConfig: Dict[str, Any] = Field(default_factory=dict)
+    worldProps: Dict[str, Any] = Field(default_factory=dict)
     spawn: WorldSpawn = Field(default_factory=WorldSpawn)
     entities: List[WorldEntity] = Field(default_factory=list)
     rules: WorldRules = Field(default_factory=WorldRules)
@@ -83,7 +112,9 @@ class WorldBlueprintJSON(BaseModel):
 
 class WorldRefineRequest(BaseModel):
     current_world_json: Optional[Dict[str, Any]] = None
-    refinement_prompt: str = Field(min_length=1, max_length=2000)
+    currentSpec: Optional[Dict[str, Any]] = None
+    refinement_prompt: Optional[str] = Field(default=None, max_length=2000)
+    instruction: Optional[str] = Field(default=None, max_length=2000)
     current_code: Optional[str] = None
     game_id: Optional[str] = None
     game_title: str = "Untitled 3D World"

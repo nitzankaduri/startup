@@ -4,6 +4,9 @@ import { DASH_COOLDOWN_MS, useGameStore } from '../store/useGameStore';
 import { useSceneEditorStore } from '../store/useSceneEditorStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { HUDActionButtons, HUDModeWidgets, MODE_HINTS, SynthesisStatusPill } from './HUDModeWidgets';
+import { BossAndPowerupOverlay } from './BossAndPowerupOverlay';
+import { FpsBadge } from './FpsBadge';
+import { FreezeEditOverlay } from './FreezeEditOverlay';
 import { LeaderboardPanel } from './LeaderboardPanel';
 import { PauseMenu } from './PauseMenu';
 import { PowerupHUD } from './PowerupHUD';
@@ -37,7 +40,9 @@ export function GameHUD({ onBackToLobby }) {
 
   const showHit = usePulse(hitMarkerAt, 120);
   const showNearMiss = usePulse(nearMissAt, 850);
-  const gameMode = currentGame?.game_config?.game_mode || 'platformer';
+  const worldSpec = currentGame?.game_config?.world_json;
+  const gameMode = worldSpec?.mode || currentGame?.game_config?.game_mode || 'platformer';
+  const specBadge = worldSpec?.themeId ? `${worldSpec.themeId.replaceAll('_', ' ')} • ${gameMode.replaceAll('_', ' ')}` : gameMode.replaceAll('_', ' ');
 
   useEffect(() => {
     const onKeyDown = (e) => { if (e.code === 'KeyR' && !['INPUT', 'TEXTAREA'].includes(e.target?.tagName)) resetRun(); };
@@ -71,8 +76,9 @@ export function GameHUD({ onBackToLobby }) {
           <button type="button" onClick={onBackToLobby} className={`inline-flex items-center gap-1.5 text-xs font-medium ${MUTED_BTN}`}><ArrowLeft className="w-3.5 h-3.5" /><span>Lobby</span></button>
           <span className={DIV_CLS} />
           <span className="text-xs font-semibold text-[#181715] dark:text-[#F1F5F9] truncate max-w-[180px]">{currentGame?.title || 'World'}</span>
-          <span className="text-[10px] font-medium uppercase tracking-wider text-[#6E6A61] dark:text-[#94A3B8] bg-[#EFECE4] dark:bg-[#182032] border border-[#E6E2D8] dark:border-[#232E42] rounded-lg px-2 py-0.5">{gameMode.replaceAll('_', ' ')}</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-[#6E6A61] dark:text-[#94A3B8] bg-[#EFECE4] dark:bg-[#182032] border border-[#E6E2D8] dark:border-[#232E42] rounded-lg px-2 py-0.5">{specBadge}</span>
           <SynthesisStatusPill currentGame={currentGame} />
+          <FpsBadge />
         </div>
 
         <div className={PILL_CLS}>
@@ -91,16 +97,17 @@ export function GameHUD({ onBackToLobby }) {
           <button type="button" onClick={resetRun} title="Restart (R)" className={`inline-flex items-center gap-1 text-xs font-medium px-1 ${MUTED_BTN}`}><RotateCcw className="w-3.5 h-3.5" /><span>Restart</span></button>
           <button type="button" onClick={handleCopyLink} className={`inline-flex items-center gap-1 text-xs font-medium px-1 ${MUTED_BTN}`}>{copied ? <Check className="w-3.5 h-3.5 text-[#D96B27]" /> : <Link2 className="w-3.5 h-3.5" />}<span>{copied ? 'Copied' : 'Share'}</span></button>
           <span className={DIV_CLS} />
-          <button type="button" onClick={toggleEditMode} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-lg transition ${isEditMode ? 'bg-[#D96B27] text-white' : 'text-[#181715] dark:text-[#F1F5F9] hover:opacity-75'}`}>
-            {isEditMode ? <Play className="w-3 h-3 fill-current" /> : <Pencil className="w-3.5 h-3.5 text-[#D96B27]" />}<span>{isEditMode ? 'Play' : 'Edit World'}</span>
+          <button type="button" onClick={toggleEditor} className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-[#182032]/85 hover:bg-[#182032] text-[#F1F5F9] border border-[#232E42] transition">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-[#D96B27]" /><span>Edit World</span>
           </button>
           <button type="button" onClick={() => setPublishOpen(true)} className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-xl bg-[#D96B27] hover:bg-[#C25C1B] text-white transition"><Share2 className="w-3 h-3" /><span>Publish &amp; Export</span></button>
-          <button type="button" onClick={toggleEditor} title="Physics & Remix Drawer" className={`p-1 ${MUTED_BTN}`}><SlidersHorizontal className="w-3.5 h-3.5" /></button>
           <button type="button" onClick={togglePause} aria-label="Settings (Esc)" title="Settings (Esc)" className={`p-1 ${MUTED_BTN}`}><Settings className="w-3.5 h-3.5" /></button>
         </div>
       </div>
 
       {copied && <div className="self-center mt-2 px-3.5 py-1.5 rounded-xl bg-[#181715] dark:bg-[#F1F5F9] text-[#F6F4EF] dark:text-[#0A0D14] text-xs font-medium shadow-md">Challenge link copied — share /play/{currentGame?.id}!</div>}
+      <FreezeEditOverlay />
+      <BossAndPowerupOverlay />
       {showNearMiss && <div className="self-center mt-4 px-3.5 py-1.5 rounded-xl bg-[#FFFFFF]/90 dark:bg-[#111622]/90 border border-[#E6E2D8] dark:border-[#232E42] text-xs font-semibold text-[#D96B27] shadow-sm animate-bounce">+50 NEAR MISS</div>}
       {showHit && <div className="self-center my-auto text-[#FFFFFF] opacity-90"><Crosshair className="w-6 h-6" /></div>}
       <ObjectivePointer />

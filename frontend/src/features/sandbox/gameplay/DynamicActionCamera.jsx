@@ -39,19 +39,20 @@ export function DynamicActionCamera({
     const dt = Math.min(0.05, Math.max(0.001, rawDelta));
     const { pos: p } = resolveCameraTarget(target ?? targetRef, motionBus.pos);
 
+    const isRunner = rig === 'three_lane_runner';
+    const armDist = rig === 'arcade_car' ? Math.max(7.8, distance) : rig === 'flight_combat' ? Math.max(9.0, distance) : isRunner ? 4.9 : distance;
+    const armH = isRunner ? 3.25 : height;
+
     if (!hasStarted) {
       const sway = Math.sin(clock.elapsedTime * 0.55) * 0.65;
-      dampVec3(smoothPos.current, p.x + sway, p.y + height, p.z + distance, posVel.current, 0.22, 0.22, 0.22, dt);
+      dampVec3(smoothPos.current, p.x + sway, p.y + armH, p.z + armDist, posVel.current, 0.22, 0.22, 0.22, dt);
       camera.position.copy(smoothPos.current);
-      camera.lookAt(p.x, p.y + 1.0, p.z - 2.5);
+      camera.lookAt(p.x, p.y + (isRunner ? 1.35 : 1.0), p.z + (isRunner ? -8.5 : -2.5));
       return;
     }
 
     const v = motionBus.vel || { x: 0, y: 0, z: 0 };
     const headingFollow = rig === 'arcade_car' || rig === 'flight_combat';
-    const isRunner = rig === 'three_lane_runner';
-    const armDist = rig === 'arcade_car' ? Math.max(7.8, distance) : rig === 'flight_combat' ? Math.max(9.0, distance) : isRunner ? 4.9 : distance;
-    const armH = isRunner ? 3.25 : height;
 
     const bx = headingFollow ? Math.sin(motionBus.yaw) * armDist : v.x * 0.08;
     const bz = headingFollow ? Math.cos(motionBus.yaw) * armDist : armDist;

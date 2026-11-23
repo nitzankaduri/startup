@@ -10,7 +10,7 @@ from google import genai
 from google.genai import types
 from ai_helpers import parse_json_resilient
 from code_validator import validate_game_code
-from game_architect import design_world_blueprint, validate_world_dict
+from game_architect import build_fallback_cartoon_world, design_world_blueprint, refine_world_fallback, validate_world_dict
 from prompts import FIX_CODE_PROMPT, REFINE_PROMPT
 from schemas import FixCodeResponse, GameConfig
 from spatial_validator import world_json_to_game_config
@@ -21,8 +21,8 @@ load_dotenv(dotenv_path=ENV_PATH, override=False)
 logger = logging.getLogger("spawn.ai")
 if not logging.getLogger().handlers:
     logging.basicConfig(level=logging.INFO)
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite").strip() or "gemini-3.1-flash-lite"
-_RAW_MODELS = [GEMINI_MODEL, "gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash").strip() or "gemini-3.6-flash"
+_RAW_MODELS = [GEMINI_MODEL, "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash"]
 FALLBACK_MODELS = [m for i, m in enumerate(_RAW_MODELS) if m and m not in _RAW_MODELS[:i]]
 StageCallback = Optional[Callable[[str, str, int], Awaitable[None]]]
 
@@ -50,9 +50,9 @@ def _require_client() -> genai.Client:
 async def _call_fast_json(prompt_text: str, client: genai.Client, max_tokens: int = 4096, temperature: float = 0.65) -> tuple[Dict[str, Any], str]:
     last_exc: Exception | None = None
     for model_name in FALLBACK_MODELS:
-        cfg = types.GenerateContentConfig(temperature=temperature, max_output_tokens=max_tokens, response_mime_type="application/json", thinking_config=types.ThinkingConfig(thinking_budget=0))
+        cfg = types.GenerateContentConfig(temperature=temperature, max_output_tokens=max_tokens, response_mime_type="application/json")
         try:
-            res = await asyncio.wait_for(client.aio.models.generate_content(model=model_name, contents=prompt_text, config=cfg), timeout=12.0)
+            res = await asyncio.wait_for(client.aio.models.generate_content(model=model_name, contents=prompt_text, config=cfg), timeout=16.0)
             return parse_json_resilient(res.text or ""), model_name
         except Exception as exc:
             last_exc, msg = exc, str(exc)
@@ -64,10 +64,13 @@ async def _call_fast_json(prompt_text: str, client: genai.Client, max_tokens: in
 
 
 async def generate_game_config(prompt: str, on_stage: StageCallback = None) -> GameConfig:
-    client = _require_client()
     if on_stage:
         await on_stage("architect", "1/3 Designing 3D world blueprint...", 1)
-    world, model_name = await design_world_blueprint(prompt, client)
+    try:
+        client = _require_client()
+        world, model_name = await design_world_blueprint(prompt, client)
+    except HTTPException:
+        world, model_name = build_fallback_cartoon_world(prompt), "fallback-cartoon-architect"
     if on_stage:
         await on_stage("validation", "2/3 Enforcing spatial road & collider rules...", 2)
     cfg = world_json_to_game_config(world, model_name)
@@ -82,13 +85,20 @@ async def refine_world_json(
     game_title: str = "Untitled 3D World",
     current_code: str | None = None,
 ) -> WorldRefineResponse:
-    client = _require_client()
     if current_world_json:
-        prompt_text = f"{WORLD_REFINE_PROMPT}\n\nTitle: {game_title}\nCurrent World JSON:\n{json.dumps(current_world_json)}\n\nRefinement: {refinement_prompt}"
-        raw, _ = await _call_fast_json(prompt_text, client, max_tokens=4096, temperature=0.55)
-        candidate = raw.get("world_json") if isinstance(raw.get("world_json"), dict) else raw
-        updated = validate_world_dict(candidate, prompt=game_title)
-        return WorldRefineResponse(world_json=updated, title=updated.title, notes=str(raw.get("notes") or "World JSON refined."))
+        try:
+            client = _require_client()
+            prompt_text = f"{WORLD_REFINE_PROMPT}\n\nTitle: {game_title}\nCurrent World JSON:\n{json.dumps(current_world_json)}\n\nRefinement: {refinement_prompt}"
+            raw, _ = await _call_fast_json(prompt_text, client, max_tokens=2048, temperature=0.55)
+            patch = raw.get("world_json") if isinstance(raw.get("world_json"), dict) else raw
+            updated = validate_world_dict({**current_world_json, **patch}, prompt=game_title)
+            return WorldRefineResponse(world_json=updated, title=updated.title, notes=str(raw.get("notes") or "World refined!"))
+        except Exception as exc:
+            logger.warning("[Refine Fallback] %s", str(exc)[:90])
+            updated = refine_world_fallback(current_world_json, refinement_prompt)
+            return WorldRefineResponse(world_json=updated, title=updated.title, notes="Updated live GameSpec!")
+
+    client = _require_client()
 
     if current_code:
         raw, _ = await _call_fast_json(f"{REFINE_PROMPT}\n\nTitle: {game_title}\nCode:\n{current_code}\n\nRequest: {refinement_prompt}", client, max_tokens=8192)

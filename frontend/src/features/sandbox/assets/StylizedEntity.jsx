@@ -1,9 +1,9 @@
 import { Component, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useAnimations, useGLTF } from '@react-three/drei';
-import { CuboidCollider, RigidBody } from '@react-three/rapier';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { useIsInsidePhysics } from '../physics/WorldPhysicsProvider';
+import { motionBus } from '../sdk/motionBus';
 import { SubwayToonGroup } from '../sdk/ToonMaterialHelper';
 import { resolveCartoonAsset } from './CartoonAssetCatalog';
 import { CartoonCarPrefab, CartoonCharacterPrefab, CartoonPickupPrefab } from './CartoonActorPrefabs';
@@ -12,6 +12,7 @@ import { CartoonCityBuildingPrefab, StreetBarrierPrefab, SubwayTrainPrefab, Trai
 const BOX = new THREE.Box3();
 const SIZE = new THREE.Vector3();
 const CENTER = new THREE.Vector3();
+const NO_PHYSICS_PREFABS = new Set(['city_building', 'gold_coin', 'powerup_magnet', 'jetpack']);
 
 class EntityBoundary extends Component {
   constructor(props) { super(props); this.state = { failed: false }; }
@@ -31,21 +32,21 @@ function PrefabSwitch({ prefab, variant, color }) {
   return <CartoonCharacterPrefab color={color} />;
 }
 
-function LoadedCartoonGlb({ url, targetHeight, rotationY = 0, animationState = 'Idle', clips = {}, onBounds }) {
+function LoadedCartoonGlb({ url, targetHeight, rotationY = 0, spin = false, animationState = 'Idle', clips = {}, onBounds }) {
   const animRoot = useRef(null);
   const { scene, animations } = useGLTF(url);
   const { clone, m } = useMemo(() => {
     const c = SkeletonUtils.clone(scene);
+    c.rotation.y = rotationY;
     c.updateMatrixWorld(true);
     BOX.setFromObject(c);
     BOX.getSize(SIZE); BOX.getCenter(CENTER);
     const ns = targetHeight / Math.max(0.001, SIZE.y || 1);
-    const swap = Math.abs(Math.sin(rotationY)) > 0.7;
     return {
       clone: c,
-      m: { ns, cx: -CENTER.x * ns, oy: -BOX.min.y * ns, cz: -CENTER.z * ns, he: [Math.max(0.15, (swap ? SIZE.z : SIZE.x) * ns * 0.5), Math.max(0.15, SIZE.y * ns * 0.5), Math.max(0.15, (swap ? SIZE.x : SIZE.z) * ns * 0.5)] },
+      m: { ns, cx: -CENTER.x * ns, oy: -BOX.min.y * ns + (spin ? 0.45 : 0), cz: -CENTER.z * ns, he: [Math.max(0.15, SIZE.x * ns * 0.5), Math.max(0.15, SIZE.y * ns * 0.5), Math.max(0.15, SIZE.z * ns * 0.5)] },
     };
-  }, [scene, targetHeight, rotationY]);
+  }, [scene, targetHeight, rotationY, spin]);
 
   const { actions, names } = useAnimations(animations, animRoot);
   useEffect(() => { onBounds?.(m.he); }, [m.he, onBounds]);
@@ -58,8 +59,15 @@ function LoadedCartoonGlb({ url, targetHeight, rotationY = 0, animationState = '
     return () => { act?.fadeOut?.(0.12); };
   }, [actions, names, animationState, clips]);
 
+  useFrame(({ clock }) => {
+    if (!spin || !animRoot.current) return;
+    const t = clock.elapsedTime;
+    animRoot.current.rotation.y = t * 2.8;
+    animRoot.current.position.y = m.oy + Math.sin(t * 3.4) * 0.1;
+  });
+
   return (
-    <group ref={animRoot} scale={m.ns} position={[m.cx, m.oy, m.cz]} rotation={[0, rotationY, 0]}>
+    <group ref={animRoot} scale={m.ns} position={[m.cx, m.oy, m.cz]}>
       <primitive object={clone} />
     </group>
   );
@@ -76,21 +84,26 @@ export function StylizedEntity({
 }) {
   const entry = resolveCartoonAsset(model || name);
   const scaleVec = Array.isArray(scale) ? scale : [scale, scale, scale];
-  const [halfExtents, setHalfExtents] = useState(() =>
+  const [, setHalfExtents] = useState(() =>
     (entry.bounds || [1, 1.8, 1]).map((v, i) => Math.max(0.15, v * 0.5 * scaleVec[i]))
   );
-  const inPhysics = useIsInsidePhysics();
+  const cullRef = useRef(null);
   const isSensor = sensor ?? Boolean(entry.sensor);
   const prefabNode = <PrefabSwitch prefab={entry.prefab} variant={variant || entry.variant} color={color} />;
 
+  useFrame(() => {
+    if (!cullRef.current) return;
+    cullRef.current.visible = Math.abs(position[2] - (motionBus.pos?.z || 0)) <= 95;
+  });
+
   const visual = (
-    <SubwayToonGroup outline thickness={0.03} color="#1E1B4B">
+    <SubwayToonGroup outline={false} thickness={0.03} color="#1E1B4B">
       <group scale={scaleVec}>
         {useGlb && entry.url ? (
           <EntityBoundary fallback={prefabNode}>
             <Suspense fallback={prefabNode}>
               <LoadedCartoonGlb
-                url={entry.url} targetHeight={entry.targetHeight} rotationY={entry.rotationY || 0}
+                url={entry.url} targetHeight={entry.targetHeight} rotationY={entry.rotationY || 0} spin={isSensor}
                 animationState={animationState} clips={entry.clips}
                 onBounds={(he) => setHalfExtents([he[0] * scaleVec[0], he[1] * scaleVec[1], he[2] * scaleVec[2]])}
               />
@@ -101,17 +114,5 @@ export function StylizedEntity({
     </SubwayToonGroup>
   );
 
-  if (!physics || solid === false || !inPhysics) {
-    return <group position={position} rotation={rotation}>{visual}</group>;
-  }
-  return (
-    <RigidBody type={bodyType} colliders={false} position={position} rotation={rotation} onCollisionEnter={onCollide}>
-      {entry.prefab === 'train_ramp' ? (
-        <CuboidCollider args={[1.3, 0.28, 3.05]} position={[0, 1.25, 0]} rotation={[-0.42, 0, 0]} />
-      ) : (
-        <CuboidCollider args={halfExtents} position={[0, halfExtents[1], 0]} sensor={isSensor} onIntersectionEnter={onSensorEnter} />
-      )}
-      {visual}
-    </RigidBody>
-  );
+  return <group ref={cullRef} position={position} rotation={rotation}>{visual}</group>;
 }

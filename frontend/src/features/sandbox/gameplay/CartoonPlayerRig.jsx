@@ -8,6 +8,7 @@ import { castGroundRay, createRigState, stepArcadeCarRig, stepThreeLaneRunnerRig
 import { RigProjectilePool, pushRigShot } from '../physics/RigVisuals';
 import { motionBus, triggerCameraShake } from '../sdk/motionBus';
 import { useGameStore } from '../store/useGameStore';
+import { PlayerSkinAttachment } from '../components/DynamicThemeStyler';
 import { sfxLaneSwipe, sfxWhooshJump } from './cartoonSfx';
 import { emitCartoonVfx } from './CartoonVFX';
 import { CartoonVisualMesh, GroundedBlobShadow } from './CartoonVisualMesh';
@@ -16,44 +17,30 @@ const TMP_OFF = new THREE.Vector3();
 const TMP_Q = new THREE.Quaternion();
 const TMP_E = new THREE.Euler();
 
-/**
- * Expressive Rapier physics player rig supporting three_lane_runner, arcade_car,
- * third_person_action, and flight_combat with grounded height-scaled blob shadows.
- */
+/** Expressive Rapier physics player rig supporting 4 modes, mechanics flags & grounded blob shadows. */
 export function CartoonPlayerRig({
-  rig = 'three_lane_runner', position = [0, 1.8, 0], color = '#D96B27',
-  speed = 11, maxSpeed = 26, boostSpeed = 42, jumpForce = 13.5, laneWidth = 3.2,
-  onAttack, onCollide, onTelemetry,
+  rig = 'three_lane_runner', position = [0, 1.8, 0], color = '#D96B27', speed = 11, maxSpeed = 26, boostSpeed = 42, jumpForce = 13.5, laneWidth = 3.2,
+  mechanics = {}, attachment = null, shotsRef: externalShotsRef, onAttack, onCollide, onTelemetry,
 }) {
-  const { camera } = useThree();
-  const { world, rapier } = useRapier();
-  const bodyRef = useRef(null);
-  const visualGroupRef = useRef(null);
-  const blobShadowRef = useRef(null);
-  const keysRef = useRef({});
-  const mouseDownRef = useRef(false);
-  const clickQueuedRef = useRef(false);
-  const carFxRef = useRef({ speed: 0, steer: 0, isDrifting: false, yaw: 0 });
-  const nitroRef = useRef(false);
+  const { camera } = useThree(); const { world, rapier } = useRapier();
+  const bodyRef = useRef(null); const visualGroupRef = useRef(null); const blobShadowRef = useRef(null); const chaserRef = useRef(null);
+  const keysRef = useRef({}); const mouseDownRef = useRef(false); const clickQueuedRef = useRef(false);
+  const carFxRef = useRef({ speed: 0, steer: 0, isDrifting: false, yaw: 0 }); const nitroRef = useRef(false);
   const animRef = useRef({ grounded: true, sliding: false, prevLane: 0, prevJumpAt: 0 });
-  const shotsRef = useRef([]);
-  const shotCursorRef = useRef(0);
-  const stRef = useRef(createRigState(speed));
-
-  const gameState = useGameStore((s) => s.gameState);
-  const hasStarted = useGameStore((s) => s.hasStarted);
-
+  const localShotsRef = useRef([]); const shotsRef = externalShotsRef || localShotsRef; const shotCursorRef = useRef(0); const stRef = useRef(createRigState(speed));
+  const gameState = useGameStore((s) => s.gameState); const hasStarted = useGameStore((s) => s.hasStarted);
   useEffect(() => bindRigInputs(keysRef, mouseDownRef, clickQueuedRef), []);
-
   useFrame((_, rawDelta) => {
     const body = bodyRef.current;
     if (!body) return;
     const pNow = body.translation();
 
-    const groundDist = castGroundRay(world, rapier, pNow, body, 26.0);
+    const rayY = rig === 'arcade_car' ? pNow.y + 0.5 : pNow.y;
+    const footOff = rig === 'arcade_car' ? 0.5 : 0.85;
+    const groundDist = castGroundRay(world, rapier, { x: pNow.x, y: rayY, z: pNow.z }, body, 26.0);
     if (blobShadowRef.current) {
-      const h = groundDist !== null ? Math.max(0, groundDist - 0.85) : 0;
-      const gY = groundDist !== null ? pNow.y - groundDist + 0.04 : 0.04;
+      const h = groundDist !== null ? Math.max(0, groundDist - footOff) : 0;
+      const gY = groundDist !== null ? rayY - groundDist + 0.04 : 0.04;
       blobShadowRef.current.position.set(pNow.x, gY, pNow.z);
       blobShadowRef.current.scale.setScalar(THREE.MathUtils.clamp(1.12 - h * 0.13, 0.34, 1.12));
       if (blobShadowRef.current.material) blobShadowRef.current.material.opacity = THREE.MathUtils.clamp(0.42 - h * 0.045, 0.12, 0.42);
@@ -81,6 +68,13 @@ export function CartoonPlayerRig({
       }
       animRef.current.sliding = res.isSliding;
       visualGroupRef.current?.rotation.set(0, 0, res.roll * 1.35);
+      if (mechanics.canShoot && (clicked || keys.KeyF) && now - s.lastFire > 220) {
+        s.lastFire = now;
+        TMP_Q.set(0, 0, 0, 1);
+        pushRigShot(shotsRef, shotCursorRef, [res.pos.x, res.pos.y + 0.6, res.pos.z - 1.0], [0, 0, -1], TMP_Q, 58, 1.0);
+        onAttack?.();
+      }
+      if (chaserRef.current) chaserRef.current.position.set(THREE.MathUtils.lerp(chaserRef.current.position.x, res.pos.x, 1 - Math.exp(-4 * dt)), 0.9, res.pos.z + 4.8);
     } else if (rig === 'arcade_car') {
       res = stepArcadeCarRig({ body, world, rapier, s, keys, dt, maxSpeed, speed });
       nitroRef.current = res.nitro;
@@ -108,8 +102,9 @@ export function CartoonPlayerRig({
 
     if (motionBus.jumpAt > animRef.current.prevJumpAt) {
       animRef.current.prevJumpAt = motionBus.jumpAt;
-      sfxWhooshJump();
-      emitCartoonVfx({ kind: 'dust', position: [res.pos.x, res.pos.y - 0.5, res.pos.z], count: 8, audio: false });
+      sfxWhooshJump(); emitCartoonVfx({ kind: 'dust', position: [res.pos.x, res.pos.y - 0.5, res.pos.z], count: 8, audio: false });
+    } else if (!animRef.current.grounded && res.grounded && res.vy <= 1.5) {
+      motionBus.landAt = now;
     }
     animRef.current.grounded = res.grounded;
 
@@ -140,7 +135,11 @@ export function CartoonPlayerRig({
         {rig === 'flight_combat' && <CuboidCollider args={[1.45, 0.44, 1.65]} />}
         {(rig === 'three_lane_runner' || rig === 'third_person_action') && <CapsuleCollider args={[0.45, 0.4]} />}
         <CartoonVisualMesh rig={rig} color={color} animRef={animRef} carFxRef={carFxRef} nitroRef={nitroRef} visualGroupRef={visualGroupRef} />
+        <PlayerSkinAttachment attachment={attachment} color={color} />
       </RigidBody>
+      {mechanics.chaserEnemy && (
+        <mesh ref={chaserRef} position={[position[0], 0.9, position[2] + 4.8]}><boxGeometry args={[0.9, 1.8, 0.8]} /><meshToonMaterial color="#1E3A8A" /></mesh>
+      )}
       <GroundedBlobShadow shadowRef={blobShadowRef} />
       <RigProjectilePool shotsRef={shotsRef} />
     </>

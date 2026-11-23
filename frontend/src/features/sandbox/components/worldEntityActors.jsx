@@ -1,17 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { CuboidCollider, RigidBody } from '@react-three/rapier';
 import { StylizedEntity } from '../assets/StylizedEntity';
 import { emitJuice } from '../assets/JuiceFX';
-import { useIsInsidePhysics } from '../physics/WorldPhysicsProvider';
 import { motionBus } from '../sdk/motionBus';
 import { registerRadarBlip, unregisterRadarBlip } from '../sdk/navigation/radarBus';
 
 /** Live moving trains, patrolling/chasing guards, vehicles & bosses with real kinematic Rapier roof colliders. */
 export function WorldDynamicActor({ ent, attackRef, onDefeated, onHitPlayer }) {
   const wrapRef = useRef(null);
-  const bodyRef = useRef(null);
-  const inPhysics = useIsInsidePhysics();
   const isTrain = ent.behavior === 'moving_train' || ent.modelId === 'subway_train';
   const stRef = useRef({
     x: ent.position[0], y: ent.position[1], z: ent.position[2],
@@ -34,8 +30,7 @@ export function WorldDynamicActor({ ent, attackRef, onDefeated, onHitPlayer }) {
     if (isTrain && ent.behavior === 'moving_train') {
       s.z += (ent.speed || 11) * dt;
       if (s.z > p.z + 24) s.z = p.z - 150;
-      if (bodyRef.current) bodyRef.current.setNextKinematicTranslation({ x: s.x, y: s.y, z: s.z });
-      else wrapRef.current?.position.set(s.x, s.y, s.z);
+      wrapRef.current?.position.set(s.x, s.y, s.z);
       if (Math.abs(p.x - s.x) < 1.35 && Math.abs(p.z - s.z) < 5.3 && p.y < s.y + 1.8 && now - s.lastHurt > 900) {
         s.lastHurt = now;
         onHitPlayer?.(25, [s.x, s.y + 1.2, s.z]);
@@ -71,22 +66,12 @@ export function WorldDynamicActor({ ent, attackRef, onDefeated, onHitPlayer }) {
     }
   });
 
-  if (isTrain && ent.behavior === 'moving_train' && inPhysics) {
-    return (
-      <RigidBody ref={bodyRef} type="kinematicPosition" colliders={false} position={ent.position}>
-        <CuboidCollider args={[1.4, 1.45, 5.7]} position={[0, 1.45, 0]} />
-        <StylizedEntity name={ent.modelId} physics={false} scale={ent.scale || 1} color={ent.color || '#10B981'} />
-      </RigidBody>
-    );
-  }
-
-  const dynamicMoves = ent.kind === 'enemy' || ent.kind === 'boss' || ent.kind === 'vehicle';
   return (
     <group ref={wrapRef} position={ent.position} rotation={ent.rotation}>
       <StylizedEntity
         name={ent.modelId} position={[0, 0, 0]}
         scale={(ent.scale || 1) * (ent.kind === 'boss' ? 1.85 : 1)}
-        color={ent.color || '#D96B27'} physics={!dynamicMoves}
+        color={ent.color || '#D96B27'} physics={false}
       />
     </group>
   );

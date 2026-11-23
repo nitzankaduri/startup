@@ -15,6 +15,7 @@ import { WaveSpawner } from '../modes/WaveSpawner';
 import { WorldPhysicsProvider } from '../physics/WorldPhysicsProvider';
 import { createAsphaltRoadTextures, createBrushedMetalTextures, createTerrainSurfaceTextures } from '../sdk/ProceduralTextures';
 import { FloatingNumbersLayer, resetArenaPhysics, resetFeelBus, resetMotionBus, resetProgression, resetRadarBus } from '../sdk/spawnSdk';
+import { SubwayToonGroup } from '../sdk/ToonMaterialHelper';
 import { preloadAllRegistryModels } from '../sdk/assets/modelRegistry';
 import { soundEngine } from '../../../shared/audio/soundEngine';
 import { SandboxEditorRig } from '../../editor/SandboxEditorRig';
@@ -87,15 +88,15 @@ export function GameCanvas({ gameConfig: propConfig, worldSpec = null, onFatalEr
 
   return (
     <Canvas
-      shadows dpr={dpr}
-      gl={{ preserveDrawingBuffer: true, antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15 }}
+      dpr={1} shadows={false}
+      gl={{ preserveDrawingBuffer: true, antialias: true, stencil: false, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15 }}
       camera={{ position: [0, 6, 10], fov: 60 }} style={{ width: '100%', height: '100%' }} className="w-full h-full block"
     >
       <PerformanceMonitor bounds={() => [45, 60]} onDecline={() => setLowQuality(true)} onIncline={() => setLowQuality(false)} />
       <SubwayToonArtDirector
         theme={activeWorldSpec?.theme}
         lighting={!hasDynamicCode}
-        postFx={preset.postFx} lowQuality={lowQuality} shadowMapSize={lowQuality ? [1024, 1024] : [2048, 2048]}
+        postFx={preset.postFx} lowQuality={lowQuality} shadowMapSize={[1024, 1024]}
       >
         <WorldPhysicsProvider runId={runId} paused={isPaused || isEditMode} gravity={[0, gravity ?? -22, 0]}>
           <group ref={setSceneRootRef}>
@@ -121,7 +122,7 @@ export function GameCanvas({ gameConfig: propConfig, worldSpec = null, onFatalEr
                         <meshStandardMaterial color="#5B564E" {...pedestalTex} roughness={0.62} metalness={0.55} />
                       </mesh>
                     </RigidBody>
-                    <AssetCatalog gameConfig={gameConfig} />
+                    <SubwayToonGroup outline thickness={0.03} color="#1E1B4B"><AssetCatalog gameConfig={gameConfig} /></SubwayToonGroup>
                     {isRacer ? <RacerController playerConfig={gameConfig.player} /> : <PlayerController playerConfig={gameConfig.player} />}
                     {isArena && <ArenaCombatSystem />}
                     {gameMode === 'survival_waves' && <WaveSpawner />}

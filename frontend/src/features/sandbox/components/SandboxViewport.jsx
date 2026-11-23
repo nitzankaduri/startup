@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { CanvasErrorBoundary } from './CanvasErrorBoundary';
-import { GameCanvas } from './GameCanvas';
+import { SandboxCanvas } from './SandboxCanvas';
 
 function ThrowAsyncError({ error }) {
   if (error) throw error;
@@ -17,7 +17,8 @@ export function SandboxViewport({ gameConfig, worldSpec, onBackToLobby }) {
   const prevWorldRef = useRef(null);
   const runId = useGameStore((s) => s.runId);
   const gameId = useGameStore((s) => s.currentGame?.id || '');
-  const activeWorld = worldSpec || useGameStore((s) => s.currentGame?.game_config?.world_json || null);
+  const storeWorld = useGameStore((s) => s.currentGame?.game_config?.world_json || null);
+  const activeWorld = worldSpec || storeWorld;
   const hasThumbnail = useGameStore((s) => Boolean(s.currentGame?.thumbnail));
   const [fatalError, setFatalError] = useState(null);
 
@@ -50,7 +51,7 @@ export function SandboxViewport({ gameConfig, worldSpec, onBackToLobby }) {
     >
       <CanvasErrorBoundary resetKey={gameId || 'preview'} onRetry={() => setFatalError(null)} onBackToLobby={onBackToLobby}>
         <ThrowAsyncError error={fatalError} />
-        <GameCanvas gameConfig={gameConfig} worldSpec={worldSpec} onFatalError={setFatalError} />
+        <SandboxCanvas world={activeWorld} />
       </CanvasErrorBoundary>
     </div>
   );

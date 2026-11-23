@@ -2,10 +2,11 @@ const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000').repla
 
 async function parseErrorDetail(res) {
   const raw = await res.text().catch(() => '');
-  let message = raw || `Request failed (${res.status})`;
+  let message = raw?.trim() || res.statusText || `Request failed (${res.status})`;
   try {
     const parsed = JSON.parse(raw);
-    if (parsed?.detail) message = typeof parsed.detail === 'string' ? parsed.detail : JSON.stringify(parsed.detail);
+    const detail = parsed?.response?.data?.detail || parsed?.detail || parsed?.message;
+    if (detail) message = typeof detail === 'string' ? detail : JSON.stringify(detail);
   } catch {
     // Keep plain text error
   }
@@ -90,13 +91,15 @@ export function remixGame(gameId, instruction, generatedCode = null) {
   });
 }
 
-export function refineGame({ current_world_json = null, current_code = null, refinement_prompt, game_title = 'Untitled 3D World', game_id = null }) {
+export function refineGame({ currentSpec = null, instruction = null, current_world_json = null, current_code = null, refinement_prompt = null, game_title = 'Untitled 3D World', game_id = null }) {
   return request('/api/games/refine', {
     method: 'POST',
     body: JSON.stringify({
+      ...(currentSpec ? { currentSpec } : {}),
+      ...(instruction ? { instruction } : {}),
       ...(current_world_json ? { current_world_json } : {}),
       ...(current_code ? { current_code } : {}),
-      refinement_prompt,
+      ...(refinement_prompt ? { refinement_prompt } : {}),
       game_title,
       ...(game_id ? { game_id } : {}),
     }),
