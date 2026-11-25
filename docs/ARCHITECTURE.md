@@ -20,6 +20,7 @@ startup/
 │   ├── world_schemas.py       # Stylized Cartoon World JSON Blueprint (`sunny_city`, `tropical_beach`, `candy_sky`, `tokyo_festival`, `desert_canyon`)
 │   ├── spatial_validator.py   # Python road/spawn anti-overlap, 3-lane passability check, curved coin arcs & 30-50 entity sanitizer
 │   ├── game_architect.py      # Fast Stylized Cartoon World Architect (<5s, Flash thinking_budget=0)
+│   ├── genre_routing.py       # Bilingual Hebrew/English intent router across 4 modes & 4 goalTypes
 │   ├── ai_service.py          # Single-pass Cartoon World synthesis & multilingual ~2s Co-Pilot JSON refinement
 │   ├── blueprint_schemas.py   # Legacy/stage Pydantic GameBlueprint schemas
 │   ├── schemas.py             # Pydantic GameConfig (with world_json), ScoreEntry, Thumbnail models
@@ -54,6 +55,24 @@ startup/
         │   │   ├── RecentGamesGrid.jsx    # Filterable Bento world grid
         │   │   └── GameCard.jsx           # 3D WebP card, genre/score/play badges, hover Play/Remix
         │   ├── sandbox/       # React Three Fiber & Rapier 3D runtime
+        │   │   ├── kernel/
+        │   │   │   ├── StudioEngineCore.js       # Clean Kenney GLB core, normalizer, PCFSoft shadows & runtime bootstrap
+        │   │   │   ├── WorldGenreDirector.js     # 5-genre world & rule generators (runner, sandbox, sky, pursuit, arena)
+        │   │   │   ├── GameKernel.jsx            # High-FPS imperative R3F kernel driving all 5 GameSpec modes
+        │   │   │   ├── OpenWorldBuilder.js       # 180x180 360-deg open-world street grid, blocks & AABB wall sliding
+        │   │   │   ├── SandboxVehicleSystem.js   # Seamless F enter/exit vehicle hijack, 360-deg drive/drift & AI traffic
+        │   │   │   ├── OpenWorldMissions.js      # 1-5 Wanted Heat Stars, destructible props & repeatable city missions
+        │   │   │   ├── ModePhysics.js            # Data-driven movement, enemy AI & obstacle/ramming physics per mode
+        │   │   │   ├── GoalEngine.js             # 4 distinct win engines: eliminate_targets, survive_waves, collect_and_escape, distance_race
+        │   │   │   ├── ActionCameraRig.js        # Mode-aware camera rigs (chase, tactical isometric, banking flight, speed-FOV pursuit)
+        │   │   │   ├── GameplayDirector.js       # Central entity lifecycle, boss AI, projectile & goal loop
+        │   │   │   ├── DirectorSetup.js          # Mode normalization & initial entity spawning per GameSpec.mode
+        │   │   │   ├── EntityMeshFactory.js      # Studio GLB model mounting w/ smooth sculpted Lathe/Extrude/Capsule fallbacks
+        │   │   │   ├── ModelAssetLoader.js       # GLTFLoader + SkeletonUtils.clone cache, Box3 normalization & y=0 grounding
+        │   │   │   ├── SculptedFallbacks.js      # Beveled ExtrudeGeometry, LatheGeometry & CapsuleGeometry sculpted fallbacks
+        │   │   │   ├── EntityShadowPool.jsx      # GPU-instanced ground contact shadows beneath enemies, bosses & vehicles
+        │   │   │   ├── StudioVisualRig.jsx       # Hemisphere + warm key + back rim lighting & multi-stop gradient sky dome
+        │   │   │   └── PlayerMovementFeel.js     # Input buffering, squash-and-stretch, barrel rolls & drift lean
         │   │   ├── store/
         │   │   │   ├── useGameStore.jsx
         │   │   │   ├── gameStoreHelpers.jsx

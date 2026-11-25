@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from typing import Dict, List
 from validator_constants import JSX_PRIMITIVES, VALID_SDK_EXPORTS, WIN_LOSE_PATTERNS

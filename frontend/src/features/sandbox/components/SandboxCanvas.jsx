@@ -3,9 +3,11 @@ import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GameKernel } from '../kernel/GameKernel';
 import { setKernelPaused } from '../kernel/kernelFreezeBus';
+import { configureStudioShadows, preloadKenneyStudio } from '../kernel/StudioEngineCore';
+import { FloatingNumbersLayer } from '../sdk/gameFeel';
 import { useGameStore } from '../store/useGameStore';
 import { useSettingsStore } from '../store/useSettingsStore';
-import { SubwayCorridorScene } from './SubwayCorridorScene';
+import { ModeEnvironmentScene } from './ModeEnvironmentScene';
 import { SubwayToonArtDirector } from './SubwayToonArtDirector';
 import { ThumbnailCapturer } from './ThumbnailCapturer';
 
@@ -15,6 +17,7 @@ export function SandboxCanvas({ world }) {
   const runId = useGameStore((s) => s.runId);
 
   useEffect(() => {
+    preloadKenneyStudio();
     useSettingsStore.getState().setPaused(false);
     setKernelPaused(false);
     wrapRef.current?.focus({ preventScroll: true });
@@ -35,15 +38,17 @@ export function SandboxCanvas({ world }) {
     >
       <Canvas
         dpr={1}
-        shadows={false}
+        shadows="soft"
+        onCreated={({ gl }) => configureStudioShadows(gl)}
         gl={{ preserveDrawingBuffer: true, powerPreference: 'high-performance', antialias: true, stencil: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15 }}
-        camera={{ position: [0, 4.2, 8.5], fov: 60 }}
+        camera={{ position: [0, 4.5, 9.5], fov: 60 }}
         style={{ width: '100%', height: '100%' }}
         className="w-full h-full block"
       >
-        <SubwayToonArtDirector theme={world?.theme || 'sunny_city'}>
-          <SubwayCorridorScene theme={world?.theme || 'sunny_city'} signLabel={world?.signLabel || 'METRO'} />
+        <SubwayToonArtDirector theme={world?.theme || 'sunny_city'} mode={world?.mode || 'endless_runner'}>
+          <ModeEnvironmentScene world={world} />
           <GameKernel world={world} />
+          <FloatingNumbersLayer />
         </SubwayToonArtDirector>
         <ThumbnailCapturer />
       </Canvas>

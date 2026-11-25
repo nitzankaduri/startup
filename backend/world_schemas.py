@@ -90,8 +90,14 @@ class WorldBlueprintJSON(BaseModel):
     palette: Dict[str, Any] = Field(default_factory=dict)
     objectiveText: str = "Collect 30 Coins"
     winTarget: int = 30
+    goalType: Literal["eliminate_targets", "survive_waves", "collect_and_escape", "distance_race", "open_world_missions"] = "collect_and_escape"
+    targetCount: int = 20
+    waveCount: int = 3
+    targetDistance: int = 1500
     canShoot: bool = False
     enemiesShoot: bool = False
+    vehiclesEnabled: bool = False
+    wantedSystem: bool = False
     speed: float = 12.0
     jumpPower: float = 13.0
     spawnRate: float = 1.0

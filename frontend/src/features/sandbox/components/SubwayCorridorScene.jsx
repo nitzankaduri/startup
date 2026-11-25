@@ -2,10 +2,9 @@ import { useEffect, useMemo, useRef } from 'react';
 import { RoundedBox } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { createBillboardTexture, createBuildingAwningTexture } from '../assets/cartoonDecals';
+import { createBillboardTexture, createBuildingAwningTexture } from '../kernel/CorridorDecals';
 import { getBallastTrackTexture, getBuildingFacadeTexture } from '../kernel/ProceduralTextureAtlas';
 import { motionBus } from '../sdk/motionBus';
-import { SubwayToonGroup } from '../sdk/ToonMaterialHelper';
 
 const RAILS_X = [-4.0, -2.4, -0.8, 0.8, 2.4, 4.0];
 const CLIFF_OFFSETS = [-1, 1];
@@ -69,7 +68,7 @@ export function SubwayCorridorScene({ theme = 'sunny_city', signLabel = 'METRO' 
   return (
     <group>
       <group ref={trackWrapRef}>
-        <mesh position={[0, -0.02, -75]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh position={[0, -0.02, -75]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <planeGeometry args={[11.6, 260]} />
           <meshStandardMaterial map={ballastMap} roughness={0.65} metalness={0.08} />
         </mesh>
@@ -100,24 +99,22 @@ export function SubwayCorridorScene({ theme = 'sunny_city', signLabel = 'METRO' 
         </instancedMesh>
 
         {[-32, -96].map((gz) => (
-          <SubwayToonGroup key={gz} outline thickness={0.03} color="#1E1B4B">
-            <group position={[0, 0, gz]}>
-              {[-6.2, 6.2].map((ax) => (
-                <RoundedBox key={ax} args={[1.1, 7.2, 1.1]} radius={0.08} position={[ax, 3.6, 0]} castShadow>
-                  <meshStandardMaterial color={pal.trim} />
-                </RoundedBox>
-              ))}
-              <RoundedBox args={[14.2, 1.85, 0.9]} radius={0.12} position={[0, 6.6, 0]} castShadow>
-                <meshStandardMaterial map={signTex} />
+          <group key={gz} position={[0, 0, gz]}>
+            {[-6.2, 6.2].map((ax) => (
+              <RoundedBox key={ax} args={[1.1, 7.2, 1.1]} radius={0.08} position={[ax, 3.6, 0]} castShadow>
+                <meshStandardMaterial color={pal.trim} />
               </RoundedBox>
-              {[-10.2, 10.2].map((bx, k) => (
-                <group key={bx} position={[bx, 0, -4]}>
-                  <mesh position={[0, 3.6, 0]}><boxGeometry args={[5.8, 7.2, 5.2]} /><meshStandardMaterial map={k === 0 ? facadeA : facadeB} roughness={0.55} metalness={0.05} /></mesh>
-                  <mesh position={[k === 0 ? 3.1 : -3.1, 2.3, 0]} rotation={[0, k === 0 ? Math.PI / 2 : -Math.PI / 2, 0]}><boxGeometry args={[4.4, 0.15, 1.2]} /><meshStandardMaterial map={awningTex} /></mesh>
-                </group>
-              ))}
-            </group>
-          </SubwayToonGroup>
+            ))}
+            <RoundedBox args={[14.2, 1.85, 0.9]} radius={0.12} position={[0, 6.6, 0]} castShadow>
+              <meshStandardMaterial map={signTex} />
+            </RoundedBox>
+            {[-10.2, 10.2].map((bx, k) => (
+              <group key={bx} position={[bx, 0, -4]}>
+                <mesh position={[0, 3.6, 0]} castShadow receiveShadow><boxGeometry args={[5.8, 7.2, 5.2]} /><meshStandardMaterial map={k === 0 ? facadeA : facadeB} roughness={0.55} metalness={0.05} /></mesh>
+                <mesh position={[k === 0 ? 3.1 : -3.1, 2.3, 0]} rotation={[0, k === 0 ? Math.PI / 2 : -Math.PI / 2, 0]}><boxGeometry args={[4.4, 0.15, 1.2]} /><meshStandardMaterial map={awningTex} /></mesh>
+              </group>
+            ))}
+          </group>
         ))}
       </group>
     </group>

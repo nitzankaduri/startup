@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Check, Crosshair, Link2, Pencil, Play, RotateCcw, Settings, Share2, SlidersHorizontal, Trophy, Volume2, VolumeX, Wind } from 'lucide-react';
+import { ArrowLeft, Check, Crosshair, Link2, RotateCcw, Settings, Share2, SlidersHorizontal, Volume2, VolumeX, Wind } from 'lucide-react';
 import { DASH_COOLDOWN_MS, useGameStore } from '../store/useGameStore';
 import { useSceneEditorStore } from '../store/useSceneEditorStore';
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -7,7 +7,7 @@ import { HUDActionButtons, HUDModeWidgets, MODE_HINTS, SynthesisStatusPill } fro
 import { BossAndPowerupOverlay } from './BossAndPowerupOverlay';
 import { FpsBadge } from './FpsBadge';
 import { FreezeEditOverlay } from './FreezeEditOverlay';
-import { LeaderboardPanel } from './LeaderboardPanel';
+import { GameHudOverlay } from './GameHudOverlay';
 import { PauseMenu } from './PauseMenu';
 import { PowerupHUD } from './PowerupHUD';
 import { TitleOverlay } from './TitleOverlay';
@@ -114,19 +114,7 @@ export function GameHUD({ onBackToLobby }) {
       <TitleOverlay />
       <UpgradeModal />
       <PauseMenu onBackToLobby={onBackToLobby} />
-      {isEnded && (
-        <div className="pointer-events-auto self-center my-auto w-full max-w-sm bg-[#FFFFFF]/95 dark:bg-[#111622]/95 backdrop-blur-md border border-[#E6E2D8] dark:border-[#232E42] rounded-2xl p-6 shadow-[0_4px_20px_rgba(24,22,18,0.08)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.55)] flex flex-col gap-4 text-center">
-          <div className="flex flex-col items-center gap-1.5">
-            {gameState === 'won' && <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#EFECE4] dark:bg-[#182032] text-[#D96B27] text-[11px] font-medium"><Trophy className="w-3 h-3" /> Complete</span>}
-            <h2 className="text-lg font-semibold tracking-tight text-[#181715] dark:text-[#F1F5F9]">{gameState === 'won' ? 'Victory' : 'Run Ended'}</h2>
-          </div>
-          <LeaderboardPanel onCopyChallenge={handleCopyLink} copied={copied} />
-          <div className="flex items-center justify-center gap-3">
-            <button type="button" onClick={resetRun} className="px-4 py-2 rounded-xl bg-[#181715] dark:bg-[#F1F5F9] text-[#F6F4EF] dark:text-[#0A0D14] text-xs font-medium hover:bg-[#2E2C28] dark:hover:bg-[#E2E8F0]">Play Again</button>
-            <button type="button" onClick={onBackToLobby} className="px-4 py-2 rounded-xl bg-[#EFECE4] dark:bg-[#182032] border border-[#E6E2D8] dark:border-[#232E42] text-[#181715] dark:text-[#F1F5F9] text-xs font-medium hover:border-[#181715]/25 dark:hover:border-[#3B4D6B]">New Prompt</button>
-          </div>
-        </div>
-      )}
+      <GameHudOverlay onCopyChallenge={handleCopyLink} copied={copied} onBackToLobby={onBackToLobby} />
 
       <div className="flex items-end justify-between gap-4">
         <div className="flex flex-col gap-2">

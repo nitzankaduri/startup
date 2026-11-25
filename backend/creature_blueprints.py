@@ -11,7 +11,7 @@ def match_creative_creature_spec(prompt: str = "") -> Optional[Dict[str, Any]]:
         return {
             "title": "קוף משליך בננות" if any("\u0590" <= c <= "\u05ff" for c in p) else "Monkey Banana Dash",
             "themeId": "pirate_island", "mode": "arena_action", "theme": "tropical_beach", "signLabel": "JUNGLE",
-            "worldLayout": "three_lane_track", "playerRig": "three_lane_runner", "objectiveText": "הבס 15 ג'ירפות",
+            "worldLayout": "open_biome", "playerRig": "third_person_action", "goalType": "eliminate_targets", "targetCount": 15, "objectiveText": "הבס 15 ג'ירפות",
             "canShoot": True, "enemiesShoot": True, "speed": 12.5, "powerupsEnabled": POWERUPS_ALL,
             "palette": {"sky": "#0EA5E9", "ground": "#4ADE80", "track": "#78350F", "primary": "#92400E", "secondary": "#FACC15", "accent": "#D96B27"},
             "playerParts": [
@@ -42,8 +42,8 @@ def match_creative_creature_spec(prompt: str = "") -> Optional[Dict[str, Any]]:
     if any(k in p for k in ("דרקון", "טירה", "dragon", "castle")):
         return {
             "title": "דרקון יורק אש בטירה" if any("\u0590" <= c <= "\u05ff" for c in p) else "Dragon Castle Blaze",
-            "themeId": "lava_dragon", "mode": "arena_action", "theme": "desert_canyon", "signLabel": "CASTLE",
-            "worldLayout": "open_biome", "playerRig": "third_person_action", "objectiveText": "הבס 15 אויבי טירה",
+            "themeId": "lava_dragon", "mode": "sky_shooter", "theme": "desert_canyon", "signLabel": "DRAGON",
+            "worldLayout": "open_biome", "playerRig": "flight_combat", "goalType": "eliminate_targets", "targetCount": 15, "objectiveText": "הבס 15 אויבי טירה",
             "canShoot": True, "enemiesShoot": True, "speed": 13.0, "powerupsEnabled": POWERUPS_ALL,
             "palette": {"sky": "#7C2D12", "ground": "#9A3412", "track": "#451A03", "primary": "#DC2626", "secondary": "#F59E0B", "accent": "#FBBF24"},
             "playerParts": [
@@ -71,7 +71,7 @@ def match_creative_creature_spec(prompt: str = "") -> Optional[Dict[str, Any]]:
         return {
             "title": "המבורגר מעופף בחלל" if any("\u0590" <= c <= "\u05ff" for c in p) else "Space Burger Blitz",
             "themeId": "space_shooter", "mode": "sky_shooter", "theme": "tokyo_festival", "signLabel": "BURGER",
-            "worldLayout": "open_biome", "playerRig": "flight_combat", "objectiveText": "הבס 15 צלחות מעופפות",
+            "worldLayout": "open_biome", "playerRig": "flight_combat", "goalType": "eliminate_targets", "targetCount": 15, "objectiveText": "הבס 15 צלחות מעופפות",
             "canShoot": True, "enemiesShoot": True, "speed": 15.5, "powerupsEnabled": POWERUPS_ALL,
             "palette": {"sky": "#0F172A", "ground": "#1E293B", "track": "#334155", "primary": "#F59E0B", "secondary": "#10B981", "accent": "#EF4444"},
             "playerParts": [

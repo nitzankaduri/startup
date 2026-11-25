@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
@@ -11,6 +13,7 @@ from google.genai import types
 from ai_helpers import parse_json_resilient
 from code_validator import validate_game_code
 from game_architect import build_fallback_cartoon_world, design_world_blueprint, refine_world_fallback, validate_world_dict
+from genre_routing import apply_refine_keywords
 from prompts import FIX_CODE_PROMPT, REFINE_PROMPT
 from schemas import FixCodeResponse, GameConfig
 from spatial_validator import world_json_to_game_config
@@ -27,12 +30,16 @@ FALLBACK_MODELS = [m for i, m in enumerate(_RAW_MODELS) if m and m not in _RAW_M
 StageCallback = Optional[Callable[[str, str, int], Awaitable[None]]]
 
 WORLD_REFINE_PROMPT = """Patch the 3D Cartoon World JSON Blueprint for live Studio Co-Pilot chat tweaks (~2s). Understand English & Hebrew naturally:
-- Examples:
-  * "הוסף רכבות מהירות" / "add fast trains" -> insert moving `modelId="subway_train"`, `kind="obstacle"`, `behavior="moving_train"`, `speed=18` on clear lane slices
-  * "הפוך את העולם לחוף טרופי" / "tropical beach" -> set `theme="tropical_beach"`, add `tree` palms & sunny coins
-  * "תן לי ג'טפאק" / "give me a jetpack" -> add `modelId="powerup_jetpack"`, `kind="powerup"` directly ahead of player + high arc of `gold_coin`
+- Support switching `mode` and `goalType` live when requested:
+  * "הפוך את זה לקרב זירה" / "arena fight" / "zombie waves" -> `mode="arena_action"`, `goalType="survive_waves"`, `worldLayout="open_biome"`, `playerRig="third_person_action"`, `canShoot=true`, `enemiesShoot=true`
+  * "תעביר לחלל" / "space shooter" / "flying dragon" -> `mode="sky_shooter"`, `goalType="eliminate_targets"`, `worldLayout="open_biome"`, `playerRig="flight_combat"`, `playerType="starfighter"`, `obstacleType="asteroid"`, `enemyType="alien_ufo"`, `canShoot=true`
+  * "מרדף משטרתי" / "car race" -> `mode="vehicle_pursuit"`, `goalType="distance_race"`, `worldLayout="city_grid"`, `playerRig="arcade_car"`, `playerType="sports_car"`, `obstacleType="police_car"`, `enemyType="rival_car"`
+  * "סאבוויי" / "subway runner" -> `mode="endless_runner"`, `goalType="collect_and_escape"`, `worldLayout="three_lane_track"`, `playerRig="three_lane_runner"`
+  * "עולם פתוח" / "ג'י טי איי" / "GTA" / "open world" / "heist" -> `mode="open_world_sandbox"`, `goalType="open_world_missions"`, `worldLayout="city_grid"`, `playerRig="third_person_action"`, `canShoot=true`, `vehiclesEnabled=true`, `wantedSystem=true`
+  * "הוסף רכבות מהירות" / "add fast trains" -> speed=18, moving_train obstacles; "חוף טרופי" / "tropical beach" -> `theme="tropical_beach"`
+- Valid `mode`: endless_runner | sky_shooter | vehicle_pursuit | arena_action | open_world_sandbox
+- Valid `goalType`: eliminate_targets | survive_waves | collect_and_escape | distance_race | open_world_missions
 - Valid `theme`: sunny_city | tropical_beach | candy_sky | tokyo_festival | desert_canyon | wild_west
-- Valid `modelId`: subway_train, train_ramp, street_barrier, high_barrier, cartoon_car, police_cruiser, city_building, gold_coin, powerup_magnet, powerup_jetpack, cartoon_character, chaser_guard, tree, rock, spaceship
 - Return ONLY JSON: {"world_json": { ...full updated blueprint... }, "notes": "Short confirmation in user's language or English"}"""
 
 
@@ -91,7 +98,8 @@ async def refine_world_json(
             prompt_text = f"{WORLD_REFINE_PROMPT}\n\nTitle: {game_title}\nCurrent World JSON:\n{json.dumps(current_world_json)}\n\nRefinement: {refinement_prompt}"
             raw, _ = await _call_fast_json(prompt_text, client, max_tokens=2048, temperature=0.55)
             patch = raw.get("world_json") if isinstance(raw.get("world_json"), dict) else raw
-            updated = validate_world_dict({**current_world_json, **patch}, prompt=game_title)
+            base_patched = apply_refine_keywords({**current_world_json, **patch}, instruction=refinement_prompt)
+            updated = validate_world_dict(base_patched, prompt=refinement_prompt or game_title)
             return WorldRefineResponse(world_json=updated, title=updated.title, notes=str(raw.get("notes") or "World refined!"))
         except Exception as exc:
             logger.warning("[Refine Fallback] %s", str(exc)[:90])

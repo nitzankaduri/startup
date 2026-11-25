@@ -7,7 +7,7 @@ import { radarBus } from './radarBus';
 const RADAR_RADIUS = 54;
 const WORLD_RANGE = 42;
 
-function toRadarXY(wx, wz, px, pz, yaw) {
+function toRadarXY(wx, wz, px, pz, yaw, worldRange = 42) {
   const dx = wx - px;
   const dz = wz - pz;
   const cos = Math.cos(-yaw);
@@ -15,8 +15,8 @@ function toRadarXY(wx, wz, px, pz, yaw) {
   const rx = dx * cos - dz * sin;
   const rz = dx * sin + dz * cos;
   const dist = Math.hypot(rx, rz);
-  const clampDist = Math.min(WORLD_RANGE, dist);
-  const scale = dist > 0.001 ? (clampDist / WORLD_RANGE) * (RADAR_RADIUS - 8) / dist : 0;
+  const clampDist = Math.min(worldRange, dist);
+  const scale = dist > 0.001 ? (clampDist / worldRange) * (RADAR_RADIUS - 8) / dist : 0;
   return { x: RADAR_RADIUS + rx * scale, y: RADAR_RADIUS + rz * scale };
 }
 
@@ -37,10 +37,11 @@ export function MinimapHUD() {
   const px = motionBus.pos.x;
   const pz = motionBus.pos.z;
   const yaw = motionBus.yaw || 0;
+  const worldRange = currentGame?.game_config?.world_json?.mode === 'open_world_sandbox' ? 75 : WORLD_RANGE;
   const dots = [];
 
   radarBus.blips.forEach((b) => {
-    dots.push({ id: b.id, type: b.type, ...toRadarXY(b.position[0], b.position[2], px, pz, yaw) });
+    dots.push({ id: b.id, type: b.type, ...toRadarXY(b.position[0], b.position[2], px, pz, yaw, worldRange) });
   });
 
   const cfg = currentGame.game_config || {};
@@ -85,7 +86,7 @@ export function MinimapHUD() {
             key={d.id}
             style={{ left: d.x, top: d.y, transform: 'translate(-50%, -50%)' }}
             className={`absolute rounded-full ${
-              d.type === 'enemy' ? 'w-2 h-2 bg-[#D96B27]' : 'w-1.5 h-1.5 bg-[#E5B869]'
+              d.type === 'enemy' ? 'w-2 h-2 bg-[#D96B27]' : d.type === 'vehicle' ? 'w-2 h-2 bg-[#0284C7]' : 'w-1.5 h-1.5 bg-[#E5B869]'
             }`}
           />
         );

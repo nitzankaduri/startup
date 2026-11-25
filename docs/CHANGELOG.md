@@ -1,5 +1,74 @@
 # Changelog
 
+## [0.102.1] - 2026-11-25
+### Connected & Hardened
+- **5-Genre `WorldGenreDirector.js` & Freeze-Frame Live Editor Integration (`StudioEngineCore.js`, `DirectorSetup.js`, `GameKernel.jsx`):**
+  - Created `WorldGenreDirector.js` (`GENRE_PROFILES`, `resolveGenreProfile`, `buildGenreObstacles`, `buildGenreCoins`, `buildGenreWorldConfig`) driving `endless_runner`, `open_world_sandbox`, `sky_shooter`, `vehicle_pursuit`, and `arena_action` through `StudioEngineCore.createStudioWorldRuntime`.
+  - Hardened Freeze-Frame Live Editor pause & resume flow in `GameKernel.jsx`: clicking `"Edit World"` sets both `kernelFreezeBus.paused` and `useSettingsStore.isPaused = true`, allows live `POST /api/games/refine` or preset/mode/speed switches on the frozen 3D frame, and resumes cleanly after the `3-2-1-GO!` countdown without `useEffect` overriding the countdown lock.
+
+## [0.102.0] - 2026-11-25
+### Changed & Added
+- **Clean-Slate `sandbox/` Rebuild & Official Kenney CC0 `.glb` Studio Pack (`setup_kenney_studio.mjs`, `StudioEngineCore.js`, `SandboxViewport.jsx`, `SandboxCanvas.jsx`, `StudioVisualRig.jsx`):**
+  - Removed 100+ redundant legacy files across `sandbox/assets/`, `sandbox/gameplay/`, `sandbox/modes/`, `sandbox/physics/`, `sandbox/components/entities/`, and unused `sandbox/sdk/*` modules while keeping `<SandboxViewport gameSpec={...} />`, `GameHUD`, `PublishModal`, `TouchControls`, and `StudioCopilotBar` contracts intact.
+  - Created `frontend/scripts/setup_kenney_studio.mjs` downloading and texture-packing 11 verified Kenney CC0 `.glb` models into `frontend/public/models/kenney/` (`character_player.glb`, `character_enemy.glb`, `train_front.glb`, `train_carriage.glb`, `car_sports.glb`, `car_police.glb`, `spaceship.glb`, `building_city.glb`, `tree_pine.glb`, `crate.glb`, `coin_gold.glb`).
+  - Added `StudioEngineCore.js` with `normalizeKenneyModel` (`targetHeight = 1.7`, grounded at `y = 0`, facing `-Z`), `PCFSoftShadowMap` (`1024x1024`) directional sun shadows (`StudioVisualRig.jsx`, `SandboxCanvas.jsx`), and third-person camera framing (`[0, 4.5, 9.5]`, `lookAt [0, 1.5, -10]`).
+
+## [0.101.1] - 2026-11-25
+### Fixed & Upgraded
+- **Exact `SkinnedMesh` Height Normalization, Arcade Toon Outlines & Runner Camera Framing (`ModelAssetLoader.js`, `EntityMeshFactory.js`, `ActionCameraRig.js`):**
+  - Fixed the 15x giant character bug caused by `Box3.setFromObject()` miscalculating `SkinnedMesh` bounds: `measureExactBounds` now calls `updateMatrixWorld(true)` and `skeleton.update()` and transforms geometry bounding-box corners directly into world space, scaling characters cleanly to `1.75` units grounded at `y = 0`.
+  - Replaced `Soldier.glb` as the default hero with expressive stylized characters (`RobotExpressive.glb` / `character_hero.glb` / `Fox.glb`) shaded with vibrant `MeshStandardMaterial` (`roughness: 0.35, metalness: 0.05`) and `#1E1B4B` `BackSide` vertex-extruded outline hulls.
+  - Tuned `ActionCameraRig.js` `endless_runner` framing to `[0, 4.6, 9.2]` looking at `[player.x * 0.4, 1.4, player.z - 10]`.
+
+## [0.101.0] - 2026-11-25
+### Upgraded
+- **AAA Three.js & Khronos `.glb` Models + Draco Decoders + Skeletal AnimationMixer (`install_real_models.mjs`, `ModelAssetLoader.js`, `EntityMeshFactory.js`, `GameKernel.jsx`):**
+  - Created `frontend/scripts/install_real_models.mjs` bundling local Draco decoders (`public/draco/`) and installing 8 verified `.glb` studio models (`hero_runner.glb`, `enemy_bot.glb`, `sports_car.glb`, `cyber_hero.glb`, `flying_creature.glb`, `CesiumMilkTruck.glb`, `DamagedHelmet.glb`, `Fox.glb`) into `frontend/public/models/`.
+  - Added `DRACOLoader` + `createMixerController` (`Run`, `Idle`, `Jump`, `Attack`) and chassis/clothing tint preservation (keeping metallic/glass/wheel materials crisp) in `ModelAssetLoader.js`, wired directly to `GameKernel.jsx` via `EntityMeshFactory.js`.
+
+## [0.100.0] - 2026-11-25
+### Added & Upgraded
+- **Arcade Rules, Mission Loop & Score Breakdown (`GameHudOverlay.jsx`, `GoalEngine.js`, `GameplayDirector.js`, `ModePhysics.js`, `EntityShadowPool.jsx`):**
+  - Added `GameHudOverlay.jsx` displaying a 2-second mission briefing banner (`MISSION: [objectiveText]`), a live top-center objective progress bar + target counter, and a Victory / Game Over modal with Accuracy %, Max Combo, Eliminations, `"Next Level (+25%)"` difficulty progression, `"Edit World"`, `"Play Again"`, and leaderboard submission.
+  - Upgraded `GameplayDirector.js`, `ModePhysics.js`, and `GoalEngine.js` with enemy flanking behavior, knockback, hit-flash, floating damage/score numbers (`FloatingNumbersLayer`), and 100%-objective Final Boss or Extraction Portal finale triggers.
+
+## [0.99.0] - 2026-11-25
+### Upgraded
+- **Studio `.glb` Asset Pipeline, Sculpted Fallbacks & Studio Rim Lighting (`download_pro_models.mjs`, `ModelAssetLoader.js`, `SculptedFallbacks.js`, `EntityMeshFactory.js`, `EntityShadowPool.jsx`, `StudioVisualRig.jsx`):**
+  - Created `frontend/scripts/download_pro_models.mjs` downloading and texture-packing 8 CC0 Kenney `.glb` studio models (`character_hero.glb`, `character_enemy.glb`, `car_sports.glb`, `car_police.glb`, `starfighter.glb`, `train_car.glb`, `building_tower.glb`, `tree_stylized.glb`) into `frontend/public/models/`.
+  - Built `ModelAssetLoader.js` (`GLTFLoader` + `SkeletonUtils.clone()`, automatic `Box3` scaling and `y = 0` grounding) and `SculptedFallbacks.js` (`LatheGeometry`, beveled `ExtrudeGeometry`, `CapsuleGeometry` — eliminating raw stacked `BoxGeometry` cubes).
+  - Upgraded `StudioVisualRig.jsx` with hemisphere bounce, warm directional key light, dedicated back rim light, and gradient sky dome, plus `EntityShadowPool.jsx` rendering instanced contact shadows beneath every moving enemy, boss, and vehicle.
+
+## [0.98.1] - 2026-11-25
+### Upgraded
+- **Open-World Intent Routing & `open_world_missions` Goal (`backend/genre_routing.py`, `backend/world_schemas.py`, `backend/spatial_validator.py`, `backend/game_architect.py`, `backend/ai_service.py`):**
+  - Mapped Hebrew & English open-world/GTA/heist/city/sandbox keywords (`"גי טי איי"`, `"gta"`, `"עולם פתוח"`, `"עיר פתוחה"`, `"חופשי"`, `"שוד"`, `"open world"`, `"sandbox"`, `"city"`, `"free roam"`, `"heist"`) directly to `mode: "open_world_sandbox"`, `goalType: "open_world_missions"`, `canShoot: true`, `vehiclesEnabled: true`, and `wantedSystem: true`.
+  - Enabled live `POST /api/games/refine` mode switching into `open_world_sandbox` with localized mission objectives.
+
+## [0.98.0] - 2026-11-25
+### Added
+- **5th Core Engine Archetype — `open_world_sandbox` (`OpenWorldBuilder.js`, `SandboxVehicleSystem.js`, `OpenWorldMissions.js`, `OpenWorldScene.jsx`, `OpenWorldEntitiesLayer.jsx`):**
+  - Built a full `180x180` 360-degree open-world city generator with intersecting avenues (`[-60, -20, 20, 60]`), central spawn plaza, `THREE.InstancedMesh` buildings, destructible street props (`hydrant`, `crate`, `barrier`), glowing mission beacons, and smooth AABB wall collision sliding.
+  - Added seamless on-foot (`WASD` + `Space` jump + `Click/E` shoot) and vehicle hijack/drive (`F` to enter/exit parked & roaming cars, 360° steering, `Space` handbrake drift, `Shift` nitro, high-speed ramming) with dynamic `ActionCameraRig.js` transitions (`[0, 5.5, 9.5]` on foot ↔ `[0, 6.5, 12]` driving) and live `MinimapHUD` vehicle/mission/enemy blips.
+  - Added 1–5 Wanted Heat Stars (`★☆☆☆☆`) in `HUDModeWidgets.jsx` dynamically scaling pursuing enforcers alongside repeatable city missions (`Reach Mission Beacon`, `Eliminate Boss Target`, `Deliver Stolen Cargo`, `Escape 3-Star Pursuit`), plus bilingual `genre_routing.py` support for GTA/open-world prompts.
+
+## [0.97.1] - 2026-11-25
+### Upgraded
+- **Bilingual Smart Genre & Goal Routing (`backend/genre_routing.py`, `backend/game_architect.py`, `backend/ai_service.py`, `backend/spatial_validator.py`):**
+  - Added `genre_routing.py` mapping Hebrew & English prompts cleanly across all 4 engine modes and 4 goal types (`sky_shooter` + `eliminate_targets`, `arena_action` + `survive_waves`, `vehicle_pursuit` + `distance_race`, `endless_runner` + `collect_and_escape`).
+  - Updated `WORLD_ARCHITECT_PROMPT`, `WORLD_REFINE_PROMPT`, `validate_world_dict`, and `refine_world_json` so `POST /api/generate` and `POST /api/games/refine` switch `mode`, `goalType`, layout, rig, and entities dynamically without leaking `endless_runner` defaults.
+
+## [0.97.0] - 2026-11-25
+### Added & Upgraded
+- **Data-Driven Multi-Mode `GameKernel` & 4 Distinct Goal Engines (`GameKernel.jsx`, `ModePhysics.js`, `GoalEngine.js`, `ActionCameraRig.js`, `GameplayDirector.js`, `ModeEnvironmentScene.jsx`):**
+  - Replaced the single hardcoded 3-lane subway track & movement loop with 4 genuinely distinct, data-driven `GameSpec.mode` worlds and physics models:
+    - `endless_runner`: 3-lane railway corridor (`SubwayCorridorScene`), lane snapping (`A/D`), jumping onto walkable obstacle roofs (`Space`), and roll/slam (`S`).
+    - `arena_action`: Open `80x80` 360° tactical arena (`ArenaWorldScene`), scattered solid cover pillars, 8-directional free movement (`WASD`), 360° aim-and-shoot (`Mouse / Space / E`), and edge-spawning converging enemy waves.
+    - `sky_shooter`: Ground-free deep-space starfield & volumetric cloud/ring arena (`SkyShooterScene`), full 3D flight freedom (`WASD`), forward thrust (`Shift`), `Q/E` barrel rolls with dodge invulnerability, and enemy squadrons + boss ships.
+    - `vehicle_pursuit`: Wide 5-lane streaming highway (`HighwayPursuitScene`), smooth analog steering (`A/D`), throttle/brake (`W/S`), nitro boost (`Shift/Space`), oncoming traffic, and ramming mechanics against pursuit targets.
+  - Upgraded `ActionCameraRig.js` with mode-specific camera rigs (`endless_runner` chase `[0, 4.2, 8.5]`, `arena_action` tactical isometric `[0, 14, 13]` with enemy centroid tracking, `sky_shooter` banking flight `[0, 3.0, 9.5]` with turn roll, and `vehicle_pursuit` hood chase `[0, 3.2, 7.5]` with speed-scaled FOV `60–82`).
+  - Built `GoalEngine.js` + updated `HUDModeWidgets.jsx` and backend schemas (`world_schemas.py`, `game_architect.py`, `spatial_validator.py`) to drive 4 distinct `goalType` win conditions (`eliminate_targets`, `survive_waves`, `collect_and_escape`, `distance_race`) in the top HUD bar.
+
 ## [0.96.2] - 2026-11-23
 ### Fixed
 - **Live Gemini Model Failover & Thinking Budget Hang (`backend/game_architect.py`, `backend/ai_service.py`):**

@@ -3,7 +3,7 @@ import { Play, Sparkles, X } from 'lucide-react';
 import { refineGame } from '../../shared/api/gameApi';
 import { triggerResumeCountdown } from '../sandbox/kernel/kernelFreezeBus';
 import { useGameStore } from '../sandbox/store/useGameStore';
-import { AI_CHIPS, CURATED_PALETTES, EDITOR_PRESETS, ENEMY_OPTS, MODE_OPTS, OBSTACLE_OPTS, PLAYER_OPTS } from './liveEditorPresets';
+import { AI_CHIPS, CURATED_PALETTES, EDITOR_PRESETS, ENEMY_OPTS, GOAL_OPTS, MODE_OPTS, OBSTACLE_OPTS, PLAYER_OPTS } from './liveEditorPresets';
 
 const SEL_CLS = 'w-full rounded-lg bg-[#182032] border border-[#232E42] px-2 py-1 text-xs text-[#F1F5F9] outline-none focus:border-[#D96B27]';
 
@@ -61,9 +61,10 @@ export function LiveGameEditor() {
 
       <div className="grid grid-cols-2 gap-2 text-[11px] text-[#94A3B8]">
         <label className="flex flex-col gap-1">Mode<select value={world.mode || 'endless_runner'} onChange={(e) => patch({ mode: e.target.value })} className={SEL_CLS}>{MODE_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}</select></label>
+        <label className="flex flex-col gap-1">Goal<select value={world.goalType || 'collect_and_escape'} onChange={(e) => patch({ goalType: e.target.value })} className={SEL_CLS}>{GOAL_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}</select></label>
         <label className="flex flex-col gap-1">Player<select value={world.playerType || 'runner_kid'} onChange={(e) => patch({ playerType: e.target.value })} className={SEL_CLS}>{PLAYER_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}</select></label>
         <label className="flex flex-col gap-1">Obstacle<select value={world.obstacleType || 'subway_train'} onChange={(e) => patch({ obstacleType: e.target.value })} className={SEL_CLS}>{OBSTACLE_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}</select></label>
-        <label className="flex flex-col gap-1">Enemy<select value={world.enemyType || 'chaser_guard'} onChange={(e) => patch({ enemyType: e.target.value })} className={SEL_CLS}>{ENEMY_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}</select></label>
+        <label className="flex flex-col gap-1 col-span-2">Enemy<select value={world.enemyType || 'chaser_guard'} onChange={(e) => patch({ enemyType: e.target.value })} className={SEL_CLS}>{ENEMY_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}</select></label>
       </div>
 
       <div className="flex flex-col gap-2 text-[11px] text-[#94A3B8]">

@@ -1,31 +1,43 @@
 export const EDITOR_PRESETS = [
   {
     label: 'Subway Trains', themeId: 'subway_trains', theme: 'sunny_city', signLabel: 'SUBWAY',
-    mode: 'endless_runner', playerType: 'runner_kid', obstacleType: 'subway_train', enemyType: 'chaser_guard',
-    collectibleType: 'gold_coin', canShoot: false, speed: 13, objectiveText: 'Collect 30 Coins',
+    mode: 'endless_runner', goalType: 'collect_and_escape', targetCount: 25,
+    playerType: 'runner_kid', obstacleType: 'subway_train', enemyType: 'chaser_guard',
+    collectibleType: 'gold_coin', canShoot: false, speed: 13, objectiveText: 'Collect 25 Coins',
     palette: { sky: '#0284C7', ground: '#4ADE80', track: '#78350F', primary: '#10B981', secondary: '#F59E0B', accent: '#E11D48' },
   },
   {
     label: 'Space Shooter', themeId: 'space_shooter', theme: 'tokyo_festival', signLabel: 'SPACE',
-    mode: 'sky_shooter', playerType: 'starfighter', obstacleType: 'asteroid', enemyType: 'alien_ufo',
-    collectibleType: 'energy_orb', canShoot: true, speed: 16, objectiveText: 'Defeat 15 Alien UFOs',
+    mode: 'sky_shooter', goalType: 'eliminate_targets', targetCount: 15,
+    playerType: 'starfighter', obstacleType: 'asteroid', enemyType: 'alien_ufo',
+    collectibleType: 'energy_orb', canShoot: true, enemiesShoot: true, speed: 16, objectiveText: 'Defeat 15 Alien UFOs',
     palette: { sky: '#0F172A', ground: '#1E293B', track: '#334155', primary: '#38BDF8', secondary: '#6366F1', accent: '#F59E0B' },
   },
   {
     label: 'Police Pursuit', themeId: 'police_pursuit', theme: 'sunny_city', signLabel: 'CHASE',
-    mode: 'vehicle_pursuit', playerType: 'sports_car', obstacleType: 'police_car', enemyType: 'rival_car',
-    collectibleType: 'gold_coin', canShoot: false, speed: 16, objectiveText: 'Collect 30 Coins',
+    mode: 'vehicle_pursuit', goalType: 'distance_race', targetDistance: 1500,
+    playerType: 'sports_car', obstacleType: 'police_car', enemyType: 'rival_car',
+    collectibleType: 'gold_coin', canShoot: false, speed: 18, objectiveText: 'Reach 1,500m',
     palette: { sky: '#0284C7', ground: '#64748B', track: '#334155', primary: '#EF4444', secondary: '#1E293B', accent: '#0EA5E9' },
   },
   {
-    label: 'Pirate Island', themeId: 'pirate_island', theme: 'tropical_beach', signLabel: 'ALOHA',
-    mode: 'endless_runner', playerType: 'pirate', obstacleType: 'pirate_barrel', enemyType: 'shark',
-    collectibleType: 'gem', canShoot: true, speed: 12.5, objectiveText: 'Collect 30 Gems',
-    palette: { sky: '#0EA5E9', ground: '#FCD34D', track: '#92400E', primary: '#D96B27', secondary: '#0EA5E9', accent: '#E11D48' },
+    label: 'Arena Survival', themeId: 'lava_dragon', theme: 'desert_canyon', signLabel: 'ARENA',
+    mode: 'arena_action', goalType: 'survive_waves', waveCount: 3,
+    playerType: 'knight', obstacleType: 'lava_pillar', enemyType: 'skeleton',
+    collectibleType: 'star', canShoot: true, enemiesShoot: true, speed: 12, objectiveText: 'Survive 3 Waves + Boss',
+    palette: { sky: '#7C2D12', ground: '#44403C', track: '#451A03', primary: '#F59E0B', secondary: '#EA580C', accent: '#EF4444' },
+  },
+  {
+    label: 'Open City GTA', themeId: 'police_pursuit', theme: 'sunny_city', signLabel: 'CITY',
+    mode: 'open_world_sandbox', goalType: 'open_world_missions', targetCount: 4,
+    playerType: 'runner_kid', obstacleType: 'police_car', enemyType: 'chaser_guard',
+    collectibleType: 'gold_coin', canShoot: true, enemiesShoot: true, speed: 12, objectiveText: 'Complete 4 City Missions',
+    palette: { sky: '#0284C7', ground: '#334155', track: '#1E293B', primary: '#D96B27', secondary: '#F59E0B', accent: '#EF4444' },
   },
 ];
 
-export const MODE_OPTS = ['endless_runner', 'sky_shooter', 'vehicle_pursuit', 'arena_action'];
+export const MODE_OPTS = ['endless_runner', 'sky_shooter', 'vehicle_pursuit', 'arena_action', 'open_world_sandbox'];
+export const GOAL_OPTS = ['collect_and_escape', 'eliminate_targets', 'survive_waves', 'distance_race', 'open_world_missions'];
 export const PLAYER_OPTS = ['runner_kid', 'starfighter', 'pirate', 'sports_car', 'knight'];
 export const OBSTACLE_OPTS = ['subway_train', 'asteroid', 'pirate_barrel', 'police_car', 'lava_pillar'];
 export const ENEMY_OPTS = ['chaser_guard', 'alien_ufo', 'shark', 'rival_car', 'skeleton'];

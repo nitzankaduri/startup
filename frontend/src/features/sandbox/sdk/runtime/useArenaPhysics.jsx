@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import * as THREE from 'three';
-import { fbm2D } from '../pbrNoise';
+
+const fbm2D = (x, z) => (Math.sin(x * 0.7) * Math.cos(z * 0.7) * 0.5 + 0.5);
 
 const COLLIDERS = new Map();
 const TERRAIN_CFG = { amplitude: 0, frequency: 0.028, flatRadius: 18, floorY: 0, bounds: 110 };

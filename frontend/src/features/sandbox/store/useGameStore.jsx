@@ -10,6 +10,7 @@ export const useGameStore = create((set, get) => ({
   currentGame: null, gameState: 'idle', score: 0, finalScore: 0, runnerScore: 0, combo: 1, nearMissAt: 0,
   totalCollectibles: 0, collectedIds: [], collectedKeys: [], passedCheckpointIds: [], checkpointsPassed: 0,
   totalCheckpoints: 0, kills: 0, targetKills: 8, currentWave: 1, totalWaves: 3, hp: 100, maxHp: 100,
+  goalType: '', goalLabel: '', goalValue: '', goalPct: 0, wantedStars: 0, inVehicle: false, nearVehicle: false, level: 1, maxCombo: 1, accuracy: 100,
   timeLeft: 90, speedKmh: 0, driftCharge: 0, driftBoosts: 0, runStartedAt: 0, runDurationMs: 0,
   bursts: [], gravity: -22, shakeAt: 0, hitMarkerAt: 0, lastDashAt: 0, isMuted: false, isEditorOpen: false,
   activePowerups: {}, hoverboardCooldownUntil: 0, customMeters: [], customActions: [], controlsHint: '',
@@ -19,13 +20,13 @@ export const useGameStore = create((set, get) => ({
   toggleEditor: () => set((s) => ({ isEditorOpen: !s.isEditorOpen })),
   setEditorOpen: (isEditorOpen) => set({ isEditorOpen }),
   toggleMute: () => set((s) => { const n = !s.isMuted; soundEngine.setMuted(n); return { isMuted: n }; }),
-  setGame: (game) => {
-    useSettingsStore.getState().setPaused(false);
-    set((s) => ({ currentGame: game, isEditorOpen: false, ...buildFreshRunState(game, s.runId, true) }));
-  },
-  resetRun: () => {
-    useSettingsStore.getState().setPaused(false);
-    set((s) => ({ isEditorOpen: false, ...buildFreshRunState(s.currentGame, s.runId, true) }));
+  setGame: (game) => { useSettingsStore.getState().setPaused(false); set((s) => ({ currentGame: game, level: 1, isEditorOpen: false, ...buildFreshRunState(game, s.runId, true) })); },
+  resetRun: () => { useSettingsStore.getState().setPaused(false); set((s) => ({ isEditorOpen: false, ...buildFreshRunState(s.currentGame, s.runId, true) })); },
+  advanceNextLevel: () => {
+    const g = get().currentGame; const w = g?.game_config?.world_json; const nextLvl = (get().level || 1) + 1;
+    const nw = w ? { ...w, difficultyScale: Number(((w.difficultyScale || 1) * 1.25).toFixed(2)) } : null;
+    const ng = nw ? { ...g, game_config: { ...g.game_config, world_json: nw } } : g;
+    useSettingsStore.getState().setPaused(false); set((s) => ({ currentGame: ng, level: nextLvl, isEditorOpen: false, ...buildFreshRunState(ng, s.runId, true) }));
   },
   setGeneratedCode: (code) => set((s) => (s.currentGame ? { currentGame: { ...s.currentGame, game_config: { ...s.currentGame.game_config, code } } } : {})),
   setWorldJson: (worldJson) => set((s) => (s.currentGame ? { currentGame: { ...s.currentGame, title: worldJson.title || s.currentGame.title, game_config: { ...s.currentGame.game_config, world_json: worldJson } } } : {})),

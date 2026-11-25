@@ -1,5 +1,25 @@
-import { AlertTriangle, Sparkles } from 'lucide-react';
+import { AlertTriangle, Flag, Gem, Shield, Sparkles, Target } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
+
+export const MODE_HINTS = {
+  open_world_sandbox: 'WASD move/drive · F enter/exit vehicle · Space jump/drift · Click/E shoot · Shift sprint/nitro · R restart',
+  endless_runner: 'A / D lanes · W / Space jump · S roll/slam · E fire · R restart',
+  arena_action: 'WASD move 360° · Click / Space / E fire · Shift dash · R restart',
+  sky_shooter: 'WASD flight · Click / Space fire · Q / E barrel roll · Shift thrust · R restart',
+  vehicle_pursuit: 'A / D steer · W / S throttle & brake · Shift / Space nitro · R restart',
+  platformer: 'WASD / Arrows · Space jump · Shift dash · R restart',
+  arcade_runner: 'A / D lanes · W / Space jump · S roll/slam · R restart',
+  arena_shooter: 'WASD move · Click / F fire · Space jump · Shift dash · R restart',
+  survival_waves: 'WASD move · Click / F fire · Survive all waves · R restart',
+  time_trial_racer: 'W / S drive · A / D steer · Space handbrake · Shift nitro boost · R restart',
+};
+
+export function GoalIcon({ goalType }) {
+  if (goalType === 'survive_waves') return <Shield className="w-3.5 h-3.5 text-[#D96B27]" />;
+  if (goalType === 'distance_race') return <Flag className="w-3.5 h-3.5 text-[#D96B27]" />;
+  if (goalType === 'collect_and_escape') return <Gem className="w-3.5 h-3.5 text-[#D96B27]" />;
+  return <Target className="w-3.5 h-3.5 text-[#D96B27]" />;
+}
 
 export function HUDActionButtons() {
   const customActions = useGameStore((s) => s.customActions);

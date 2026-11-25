@@ -21,7 +21,8 @@ export function buildFreshRunState(game, runId, started = true) {
   return {
     gameState: game ? 'playing' : 'idle',
     hasStarted: started,
-    score: 0, finalScore: 0, runnerScore: 0, combo: 1, nearMissAt: 0, kills: 0,
+    score: 0, finalScore: 0, runnerScore: 0, combo: 1, maxCombo: 1, accuracy: 100, nearMissAt: 0, kills: 0,
+    goalType: '', goalLabel: '', goalValue: '', goalPct: 0, wantedStars: 0, inVehicle: false, nearVehicle: false,
     currentWave: 1, checkpointsPassed: 0, driftBoosts: 0, collectedIds: [], collectedKeys: [],
     passedCheckpointIds: [], bursts: [], lastDashAt: 0, hitMarkerAt: 0, speedKmh: 0, driftCharge: 0,
     activePowerups: {}, hoverboardCooldownUntil: 0,

@@ -12,13 +12,13 @@ function ThrowAsyncError({ error }) {
  * Full-viewport sandbox container hosting StudioLightingRig, Rapier Physics,
  * SmartModel .glb world specs, seamless Co-Pilot focus preservation & 1.5s poster snapshot.
  */
-export function SandboxViewport({ gameConfig, worldSpec, onBackToLobby }) {
+export function SandboxViewport({ gameSpec, worldSpec, onBackToLobby }) {
   const viewportRef = useRef(null);
   const prevWorldRef = useRef(null);
   const runId = useGameStore((s) => s.runId);
   const gameId = useGameStore((s) => s.currentGame?.id || '');
   const storeWorld = useGameStore((s) => s.currentGame?.game_config?.world_json || null);
-  const activeWorld = worldSpec || storeWorld;
+  const activeWorld = gameSpec || worldSpec || storeWorld;
   const hasThumbnail = useGameStore((s) => Boolean(s.currentGame?.thumbnail));
   const [fatalError, setFatalError] = useState(null);
 
