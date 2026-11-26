@@ -6,6 +6,7 @@ from typing import Any, Dict, Tuple
 from google import genai
 from google.genai import types
 from ai_helpers import parse_json_resilient
+from dimension_routing import enforce_dimension_spec, is_2d_puzzle_prompt, normalize_dimension
 from genre_routing import apply_mode_alignment, apply_refine_keywords, infer_spec_from_prompt
 from spatial_validator import sanitize_world_json
 from world_schemas import WorldBlueprintJSON
@@ -31,29 +32,38 @@ def _fast_models() -> list[str]:
     return [m for i, m in enumerate(chain) if m and m not in chain[:i]]
 
 
-def validate_world_dict(raw: Dict[str, Any], prompt: str = "") -> WorldBlueprintJSON:
+def validate_world_dict(raw: Dict[str, Any], prompt: str = "", dimension: str | None = None) -> WorldBlueprintJSON:
     merged = apply_mode_alignment(raw, prompt=prompt)
-    return WorldBlueprintJSON.model_validate(sanitize_world_json(merged, prompt=prompt))
+    enforced = enforce_dimension_spec(merged, dimension or raw.get("dimension"), prompt=prompt)
+    return WorldBlueprintJSON.model_validate(sanitize_world_json(enforced, prompt=prompt))
 
 
-def build_fallback_cartoon_world(prompt: str = "") -> WorldBlueprintJSON:
-    return validate_world_dict(infer_spec_from_prompt(prompt), prompt=prompt)
+def build_fallback_cartoon_world(prompt: str = "", dimension: str = "3d") -> WorldBlueprintJSON:
+    return validate_world_dict(infer_spec_from_prompt(prompt), prompt=prompt, dimension=dimension)
 
 
 def refine_world_fallback(current_spec: Dict[str, Any], instruction: str = "") -> WorldBlueprintJSON:
     """Fast deterministic Hebrew/English GameSpec refinement fallback (~1ms)."""
     patched = apply_refine_keywords(current_spec, instruction=instruction)
-    return validate_world_dict(patched, prompt=instruction or patched.get("title") or "")
+    return validate_world_dict(patched, prompt=instruction or patched.get("title") or "", dimension=patched.get("dimension"))
 
 
-async def design_world_blueprint(prompt: str, client: genai.Client) -> Tuple[WorldBlueprintJSON, str]:
-    prompt_text = f"{WORLD_ARCHITECT_PROMPT}\n\nUser Prompt: {prompt}"
+async def design_world_blueprint(prompt: str, client: genai.Client, dimension: str = "3d") -> Tuple[WorldBlueprintJSON, str]:
+    dim = normalize_dimension(dimension, prompt)
+    if is_2d_puzzle_prompt(prompt):
+        return build_fallback_cartoon_world(prompt, dimension="2d"), "deterministic-2d-puzzle-architect"
+    dim_hint = (
+        "DIMENSION=2D: Force `dimension: \"2d\"` and pick `mode` strictly from 2d_grid_puzzle | 2d_platformer | 2d_topdown_action | 2d_endless_dash | 2d_space_arcade with `gravity2d` and `parallaxTheme`."
+        if dim == "2d" else
+        "DIMENSION=3D: Force `dimension: \"3d\"` and pick `mode` strictly from endless_runner | open_world_sandbox | sky_shooter | vehicle_pursuit | arena_action."
+    )
+    prompt_text = f"{WORLD_ARCHITECT_PROMPT}\n{dim_hint}\n\nUser Prompt: {prompt}"
     last_exc: Exception | None = None
     for model_name in _fast_models():
         config = types.GenerateContentConfig(temperature=0.72, max_output_tokens=2048, response_mime_type="application/json")
         try:
             res = await asyncio.wait_for(client.aio.models.generate_content(model=model_name, contents=prompt_text, config=config), timeout=8.0)
-            world = validate_world_dict(parse_json_resilient(res.text or ""), prompt=prompt)
+            world = validate_world_dict(parse_json_resilient(res.text or ""), prompt=prompt, dimension=dim)
             return world, model_name
         except Exception as exc:
             last_exc, msg = exc, str(exc)
@@ -62,4 +72,4 @@ async def design_world_blueprint(prompt: str, client: genai.Client) -> Tuple[Wor
                 continue
             raise
     logger.warning("[Cartoon Architect] All live models failed (%s) — using deterministic Cartoon World fallback.", last_exc)
-    return build_fallback_cartoon_world(prompt), "fallback-cartoon-architect"
+    return build_fallback_cartoon_world(prompt, dimension=dim), "fallback-cartoon-architect"

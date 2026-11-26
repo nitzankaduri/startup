@@ -30,58 +30,55 @@ export function getBallastTrackTexture(rx = 1, ry = 28) {
   return memo(`ballast:${rx}:${ry}`, () => {
     const c = mkCanvas(512, 512); if (!c) return null;
     const ctx = c.getContext('2d');
-    ctx.fillStyle = '#C9B39B'; ctx.fillRect(0, 0, 512, 512);
-    for (let i = 0; i < 900; i += 1) {
-      ctx.fillStyle = i % 2 === 0 ? 'rgba(110,92,72,0.22)' : 'rgba(255,248,235,0.2)';
+    ctx.fillStyle = '#645A52'; ctx.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 1100; i += 1) {
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(38,34,30,0.32)' : 'rgba(226,216,205,0.22)';
       ctx.fillRect((i * 73) % 512, (i * 137) % 512, 4, 4);
     }
     const lanes = [86, 256, 426];
     lanes.forEach((lx) => {
       for (let y = 0; y < 512; y += 64) {
-        ctx.fillStyle = '#78350F'; ctx.fillRect(lx - 58, y + 12, 116, 20);
-        ctx.fillStyle = '#92400E'; ctx.fillRect(lx - 54, y + 14, 108, 6);
+        ctx.fillStyle = '#5C3A21'; ctx.fillRect(lx - 58, y + 12, 116, 20);
+        ctx.fillStyle = '#784B2A'; ctx.fillRect(lx - 54, y + 14, 108, 6);
       }
       [-40, 40].forEach((off) => {
         ctx.fillStyle = '#94A3B8'; ctx.fillRect(lx + off - 4, 0, 8, 512);
         ctx.fillStyle = '#F8FAFC'; ctx.fillRect(lx + off - 2, 0, 3, 512);
       });
     });
-    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.fillStyle = 'rgba(255,255,255,0.24)';
     ctx.fillRect(168, 0, 4, 512); ctx.fillRect(340, 0, 4, 512);
     return finalize(c, rx, ry);
   });
 }
 
-/** Rich painted subway train livery with racing stripes & tinted passenger windows. */
-export function getTrainLiveryTexture(bodyHex = '#0EA5E9', stripeHex = '#F59E0B') {
-  return memo(`livery:${bodyHex}:${stripeHex}`, () => {
-    const c = mkCanvas(512, 256); if (!c) return null;
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = bodyHex; ctx.fillRect(0, 0, 512, 256);
-    ctx.fillStyle = '#FFFBEB'; ctx.fillRect(0, 154, 512, 14);
-    ctx.fillStyle = stripeHex; ctx.fillRect(0, 168, 512, 46);
-    for (let x = 28; x < 480; x += 92) {
-      ctx.fillStyle = '#1E293B'; ctx.fillRect(x, 56, 70, 68);
-      ctx.fillStyle = '#38BDF8'; ctx.fillRect(x + 6, 62, 58, 56);
-    }
-    return finalize(c, 1, 1);
-  });
-}
-
-/** Colorful multi-story shopfront / city facade with framed windows & awning band. */
-export function getBuildingFacadeTexture(wallHex = '#FDE68A') {
-  return memo(`facade:${wallHex}`, () => {
+/** Multi-story urban building facade with illuminated warm/sky glass windows, mullions & storefront. */
+export function getBuildingFacadeTexture(wallHex = '#334155', litHex = '#FEF08A') {
+  return memo(`facade2:${wallHex}:${litHex}`, () => {
     const c = mkCanvas(256, 512); if (!c) return null;
     const ctx = c.getContext('2d');
     ctx.fillStyle = wallHex; ctx.fillRect(0, 0, 256, 512);
-    for (let y = 36; y < 380; y += 92) {
-      for (let x = 24; x < 230; x += 72) {
-        ctx.fillStyle = '#FFFBEB'; ctx.fillRect(x, y, 52, 62);
-        ctx.fillStyle = '#93C5FD'; ctx.fillRect(x + 6, y + 6, 40, 50);
+    ctx.fillStyle = 'rgba(15,23,42,0.35)';
+    ctx.fillRect(0, 0, 256, 18);
+    for (let row = 0; row < 6; row += 1) {
+      const y = 28 + row * 68;
+      ctx.fillStyle = 'rgba(15,23,42,0.22)';
+      ctx.fillRect(0, y - 6, 256, 4);
+      for (let col = 0; col < 4; col += 1) {
+        const x = 16 + col * 58;
+        ctx.fillStyle = '#0F172A';
+        ctx.fillRect(x, y, 46, 50);
+        const isWarm = (row * 3 + col * 5) % 3 !== 0;
+        ctx.fillStyle = isWarm ? litHex : '#7DD3FC';
+        ctx.fillRect(x + 4, y + 4, 38, 42);
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.fillRect(x + 6, y + 6, 14, 38);
       }
     }
-    ctx.fillStyle = '#D96B27'; ctx.fillRect(0, 404, 256, 32);
-    ctx.fillStyle = '#475569'; ctx.fillRect(88, 436, 80, 76);
+    ctx.fillStyle = '#D96B27'; ctx.fillRect(0, 438, 256, 16);
+    ctx.fillStyle = '#1E293B'; ctx.fillRect(16, 456, 224, 56);
+    ctx.fillStyle = '#FEF3C7'; ctx.fillRect(28, 464, 92, 42);
+    ctx.fillStyle = '#BAE6FD'; ctx.fillRect(136, 464, 92, 42);
     return finalize(c, 1, 1);
   });
 }

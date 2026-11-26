@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.98.0] - 2026-11-26
+### Added
+- **Home Screen `3D | 2D` Dimension Switcher & Generic Data-Driven `Canvas2DViewport` Engine (`PromptBar.jsx`, `LobbyPage.jsx`, `LobbyHero.jsx`, `lobbyHelpers.jsx`, `SandboxViewport.jsx`, `GameHUD.jsx`, `canvas2d/`, `backend/dimension_routing.py`):**
+  - Added a persisted `3D World | 2D Arcade` segmented switcher inside the Lobby `PromptBar`, dynamically swapping placeholders and 4 mode presets between 3D and 2D and sending `{ prompt, dimension }` in `POST /api/games/generate` and `/api/generate-stream`.
+  - Added strict backend dimension enforcement (`dimension_routing.py`, `game_architect.py`, `ai_service.py`, `spatial_validator.py`) locking `"2d"` prompts to `2d_platformer`, `2d_topdown_action`, `2d_endless_dash`, or `2d_space_arcade` with tailored 2D gravity and parallax themes, and `"3d"` prompts strictly to 3D modes.
+  - Built a modular 60-120 FPS HTML5 `<canvas>` 2D runtime (`engine2dState.js`, `engine2dStep.js`, `engine2dRender.js`, `Canvas2DViewport.jsx`) with seamless `SandboxViewport` routing and a live `3D | 2D` switcher inside `GameHUD.jsx`.
+
+## [0.97.0] - 2026-11-26
+### Upgraded
+- **Cinematic HDRI PBR Rendering Pipeline & Verified Studio Art Pack (`StudioRenderPipeline.js`, `StudioPostFX.jsx`, `StudioAssetRegistry.js`, `StudioVisualRig.jsx`, `build_studio_pack.mjs`):**
+  - Configured `WebGLRenderer` with `ACESFilmicToneMapping` (`toneMappingExposure = 1.15`), `SRGBColorSpace`, `PCFSoftShadowMap` (`2048x2048` player-tracking shadow frustum via `updateShadowTracker`), procedural studio HDRI `PMREMGenerator` environment reflections (`scene.environment`), and `<EffectComposer>` with `Bloom` (`threshold = 0.92`, `intensity = 0.35`), `SMAA`, and `ToneMapping`.
+  - Built `frontend/scripts/build_studio_pack.mjs` downloading and verifying 14 uniform CC0 `.glb` assets (`> 10KB` self-contained binaries with embedded textures and skeletal clips) into `frontend/public/assets/studio/`.
+  - Added `StudioAssetRegistry.js` to normalize static mesh bounds (exact category `targetHeight`/`targetLength`, `y = 0` grounding, `-Z` forward alignment) and tune PBR roughness/metalness + selective HDR emissive accents across all `GameKernel` modes.
+
 ## [0.102.1] - 2026-11-25
 ### Connected & Hardened
 - **5-Genre `WorldGenreDirector.js` & Freeze-Frame Live Editor Integration (`StudioEngineCore.js`, `DirectorSetup.js`, `GameKernel.jsx`):**

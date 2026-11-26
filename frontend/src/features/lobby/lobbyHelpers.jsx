@@ -8,71 +8,71 @@ export const GENRE_FILTERS = [
   { id: 'adventure', label: 'Arcade & Parkour' },
 ];
 
-export const QUICK_CHIPS = [
-  { label: 'Coastal Siege', prompt: 'Armored Soldier defending a sunlit coastal fortress with planar ocean reflections, patrolling guards, and cannon turrets' },
-  { label: 'Desert Convoy', prompt: 'High-speed desert buggy convoy across volcanic canyons with suspension physics, dust plumes, and boss turret ambush' },
-  { label: 'Alpine Outpost', prompt: 'Isometric snow mountain outpost defense with patrolling wolves, turret building, and ballistic projectile strikes' },
-  { label: 'Sky Flight', prompt: '6-DOF jet aircraft soaring through sunlit mountain canyons, ringing aerial checkpoints cleanly before fuel runs dry' },
-  { label: 'Lava Citadel', prompt: 'Skeletal warrior infiltrating a glowing lava caldera citadel with patrolling robots, crates, and explosive barrels' },
+export const PRESETS_3D = [
+  { label: '3D Subway Train Runner', prompt: '3D Subway Train Runner with colorful trains, roof parkour ramps, golden coin arcs & chaser guard' },
+  { label: 'Open-World City Police Chase', prompt: 'Open-World City Police Chase with drivable sports cars, wanted stars & urban missions' },
+  { label: '3D Space Fighter Squadron', prompt: '3D Space Fighter Squadron battling alien UFO waves, asteroid belts & mothership boss' },
+  { label: '3D Gladiator Arena', prompt: '3D Gladiator Arena fighting waves of skeleton knights with dash & rapid blasters' },
 ];
 
-export const PLACEHOLDER_PROMPTS = [
-  'Build a coastal harbor siege with ocean reflections...',
-  'Spawn a desert buggy rally with jump ramps...',
-  'Create an alpine mountain outpost defense...',
-  'Design a wind-swept sunlit meadow parkour climb...',
+export const PRESETS_2D = [
+  { label: '2D Cyber Platformer', prompt: '2D Cyber Platformer with precision double-jump platforms, patrol guards, blasters & coin arcs' },
+  { label: '2D Top-Down Zombie Survival', prompt: '2D Top-Down Zombie Survival arena with 360 aim shooting, multi-wave enemies & power-ups' },
+  { label: '2D Neon-Free Rhythm Dash', prompt: '2D Neon-Free Rhythm Dash runner with crisp beat-timed spikes, jump pads & warm parallax sky' },
+  { label: '2D Retro Space Invaders', prompt: '2D Retro Space Invaders squadron waves, laser cannons, asteroid cover & mothership boss' },
 ];
 
-export function useTypingPlaceholder(isActive) {
+export const QUICK_CHIPS = PRESETS_3D;
+
+export const PLACEHOLDERS_3D = [
+  '3D Subway Train Runner with jumpable train roofs...',
+  'Open-World City Police Chase with drivable supercars...',
+  '3D Space Fighter Squadron vs alien UFO boss...',
+  '3D Gladiator Arena survival with waves & power-ups...',
+];
+
+export const PLACEHOLDERS_2D = [
+  '2D Cyber Platformer with double jumps and coins...',
+  '2D Top-Down Zombie Survival with 360 blasters...',
+  '2D Neon-Free Rhythm Dash over beat spikes...',
+  '2D Retro Space Invaders defending Earth orbit...',
+];
+
+export function useTypingPlaceholder(isActive, dimension = '3d') {
   const [text, setText] = useState('');
 
   useEffect(() => {
     if (!isActive) return undefined;
-    let phraseIdx = 0;
-    let charIdx = 0;
-    let deleting = false;
-    let timer;
-
+    const phrases = dimension === '2d' ? PLACEHOLDERS_2D : PLACEHOLDERS_3D;
+    let phraseIdx = 0; let charIdx = 0; let deleting = false; let timer;
     const step = () => {
-      const target = PLACEHOLDER_PROMPTS[phraseIdx];
+      const target = phrases[phraseIdx % phrases.length];
       if (!deleting) {
-        charIdx += 1;
-        setText(target.slice(0, charIdx));
-        if (charIdx >= target.length) {
-          deleting = true;
-          timer = setTimeout(step, 1700);
-          return;
-        }
+        charIdx += 1; setText(target.slice(0, charIdx));
+        if (charIdx >= target.length) { deleting = true; timer = setTimeout(step, 1700); return; }
         timer = setTimeout(step, 34);
       } else {
-        charIdx -= 2;
-        setText(target.slice(0, Math.max(0, charIdx)));
-        if (charIdx <= 0) {
-          deleting = false;
-          phraseIdx = (phraseIdx + 1) % PLACEHOLDER_PROMPTS.length;
-          timer = setTimeout(step, 260);
-          return;
-        }
+        charIdx -= 2; setText(target.slice(0, Math.max(0, charIdx)));
+        if (charIdx <= 0) { deleting = false; phraseIdx = (phraseIdx + 1) % phrases.length; timer = setTimeout(step, 260); return; }
         timer = setTimeout(step, 16);
       }
     };
-    timer = setTimeout(step, 320);
+    timer = setTimeout(step, 180);
     return () => clearTimeout(timer);
-  }, [isActive]);
+  }, [isActive, dimension]);
 
-  return text || 'Build a 3D world where...';
+  return text || (dimension === '2d' ? 'Build a 2D arcade game where...' : 'Build a 3D world where...');
 }
 
 export function detectGameGenre(game) {
   const cfg = game?.game_config || {};
-  const mode = cfg.game_mode || '';
+  const mode = cfg.mode || cfg.world_json?.mode || cfg.game_mode || '';
   const code = cfg.code || '';
   const text = `${game?.title || ''} ${game?.prompt || ''}`.toLowerCase();
-
-  if (code.includes('FlyableCraft') || /\b(flight|fly|aircraft|jet|plane|wing|sky|glider)\b/.test(text)) return 'Flight';
-  if (mode === 'time_trial_racer' || code.includes('DrivableVehicle') || /\b(buggy|convoy|rally|vehicle|car|truck|racer|drift)\b/.test(text)) return 'Vehicles';
-  if (code.includes('GridBuilder') || code.includes('useEconomy') || /\b(strategy|builder|outpost|tower|defense|colony|economy|fortress build)\b/.test(text)) return 'Strategy';
-  if (mode === 'arena_shooter' || mode === 'survival_waves' || code.includes('ProjectilePool') || code.includes('SmartEntity') || /\b(combat|shooter|arena|boss|siege|waves|battle|soldier|citadel)\b/.test(text)) return 'Action';
+  if (code.includes('FlyableCraft') || mode.includes('sky') || mode.includes('space') || /\b(flight|fly|aircraft|jet|plane|wing|sky|space|invader)\b/.test(text)) return 'Flight';
+  if (mode === 'time_trial_racer' || mode === 'vehicle_pursuit' || code.includes('DrivableVehicle') || /\b(buggy|convoy|rally|vehicle|car|truck|racer|drift|police chase)\b/.test(text)) return 'Vehicles';
+  if (code.includes('GridBuilder') || code.includes('useEconomy') || /\b(strategy|builder|outpost|tower|defense|colony|economy)\b/.test(text)) return 'Strategy';
+  if (mode === 'arena_shooter' || mode === 'arena_action' || mode === '2d_topdown_action' || mode === 'survival_waves' || /\b(combat|shooter|arena|boss|siege|waves|battle|zombie|gladiator)\b/.test(text)) return 'Action';
   return 'Adventure';
 }
 

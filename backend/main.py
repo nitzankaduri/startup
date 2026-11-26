@@ -44,7 +44,7 @@ async def health_check():
 @app.post("/api/generate", response_model=GenerateResponse)
 @app.post("/api/games/generate", response_model=GenerateResponse)
 async def generate_game(payload: GenerateRequest):
-    game_config = await generate_game_config(payload.prompt)
+    game_config = await generate_game_config(payload.prompt, dimension=payload.dimension or "3d")
     game_id = str(uuid.uuid4())[:8]
     record = {
         "id": game_id,

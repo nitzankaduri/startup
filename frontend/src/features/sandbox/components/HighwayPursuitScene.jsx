@@ -97,7 +97,7 @@ export function HighwayPursuitScene({ palette }) {
       </instancedMesh>
       <instancedMesh ref={lampRef} args={[null, null, LAMP_COUNT]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#1E293B" metalness={0.5} roughness={0.4} />
+        <meshStandardMaterial color="#1E293B" metalness={0.65} roughness={0.28} emissive="#FDE047" emissiveIntensity={0.45} />
       </instancedMesh>
     </group>
   );

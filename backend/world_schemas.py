@@ -69,6 +69,11 @@ class WorldSpawn(BaseModel):
 
 class WorldBlueprintJSON(BaseModel):
     title: str = "Subway Dash World"
+    dimension: Literal["3d", "2d"] = "3d"
+    gravity2d: float = 26.0
+    parallaxTheme: str = "urban_dusk"
+    gridSize: int = 4
+    targetTile: int = 2048
     theme: str = "sunny_city"
     signLabel: str = "METRO"
     lightingPreset: LightingPreset = "sunset"

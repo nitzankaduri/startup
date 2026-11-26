@@ -24,7 +24,7 @@ async def generate_game_stream(payload: GenerateRequest):
 
     async def worker():
         try:
-            game_config = await generate_game_config(payload.prompt, on_stage=on_stage)
+            game_config = await generate_game_config(payload.prompt, on_stage=on_stage, dimension=payload.dimension or "3d")
             game_id = str(uuid.uuid4())[:8]
             record = {
                 "id": game_id,

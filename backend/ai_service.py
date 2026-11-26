@@ -70,14 +70,19 @@ async def _call_fast_json(prompt_text: str, client: genai.Client, max_tokens: in
     raise HTTPException(status_code=502, detail=f"Gemini API Error: {last_exc}") from last_exc
 
 
-async def generate_game_config(prompt: str, on_stage: StageCallback = None) -> GameConfig:
-    if on_stage:
-        await on_stage("architect", "1/3 Designing 3D world blueprint...", 1)
+async def generate_game_spec(prompt: str, dimension: str = "3d"):
     try:
         client = _require_client()
-        world, model_name = await design_world_blueprint(prompt, client)
+        world, model_name = await design_world_blueprint(prompt, client, dimension=dimension)
     except HTTPException:
-        world, model_name = build_fallback_cartoon_world(prompt), "fallback-cartoon-architect"
+        world, model_name = build_fallback_cartoon_world(prompt, dimension=dimension), "fallback-cartoon-architect"
+    return world, model_name
+
+
+async def generate_game_config(prompt: str, on_stage: StageCallback = None, dimension: str = "3d") -> GameConfig:
+    if on_stage:
+        await on_stage("architect", f"1/3 Designing {'2D arcade' if str(dimension).lower() == '2d' else '3D world'} blueprint...", 1)
+    world, model_name = await generate_game_spec(prompt, dimension=dimension)
     if on_stage:
         await on_stage("validation", "2/3 Enforcing spatial road & collider rules...", 2)
     cfg = world_json_to_game_config(world, model_name)

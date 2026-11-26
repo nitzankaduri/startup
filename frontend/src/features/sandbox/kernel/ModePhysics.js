@@ -78,7 +78,7 @@ export function stepModeEnemies(st, dt, now, hurtPlayer, spawnBurst, cb) {
       const flank = Math.sin(now * 0.002 + i * 1.7) * (dist > 6 ? 0.38 : 0.0);
       const nx = dx / dist; const nz = dz / dist;
       const spd = st.isSandbox ? (4.8 + (st.wantedStars || 0) * 1.1) : (4.6 + Math.min(3.5, (st.wave - 1) * 0.9));
-      e.x += (nx - nz * flank) * spd * dt; e.z += (nz + nx * flank) * spd * dt; e.yaw = Math.atan2(dx, dz);
+      e.x += (nx - nz * flank) * spd * dt; e.z += (nz + nx * flank) * spd * dt; e.yaw = Math.atan2(-dx, -dz);
       if (st.isSandbox) resolveBuildingCollisions(e, 0.65, st.buildings);
     } else if (st.isSky) {
       e.x += Math.sin(now * 0.002 + i) * 3.2 * dt; e.z += e.vz * dt;

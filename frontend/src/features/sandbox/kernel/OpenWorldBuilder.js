@@ -2,7 +2,7 @@ export const CITY_HALF = 88;
 export const STREET_LINES = [-60, -20, 20, 60];
 const BLOCK_CENTERS = [-40, 0, 40];
 
-const BUILDING_PALETTE = ['#CBD5E1', '#E2E8F0', '#FDE68A', '#FDBA74', '#93C5FD', '#FCA5A5', '#D6D3D1'];
+const BUILDING_PALETTE = ['#CBD5E1', '#E2E8F0', '#FDE68A', '#93C5FD', '#FCA5A5', '#D6D3D1', '#A7F3D0'];
 const PROP_KINDS = ['hydrant', 'crate', 'barrier'];
 
 /**

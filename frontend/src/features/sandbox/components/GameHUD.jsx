@@ -34,15 +34,24 @@ function usePulse(trigger, ms) {
 export function GameHUD({ onBackToLobby }) {
   const [copied, setCopied] = useState(false);
   const [dashRatio, setDashRatio] = useState(1);
-  const { currentGame, gameState, lastDashAt, hitMarkerAt, nearMissAt, isMuted, controlsHint, resetRun, toggleMute, toggleEditor } = useGameStore();
+  const { currentGame, gameState, lastDashAt, hitMarkerAt, nearMissAt, isMuted, controlsHint, resetRun, toggleMute, toggleEditor, setWorldJson } = useGameStore();
   const togglePause = useSettingsStore((s) => s.togglePause);
-  const { isEditMode, toggleEditMode, setPublishOpen } = useSceneEditorStore();
+  const { setPublishOpen } = useSceneEditorStore();
 
   const showHit = usePulse(hitMarkerAt, 120);
   const showNearMiss = usePulse(nearMissAt, 850);
   const worldSpec = currentGame?.game_config?.world_json;
   const gameMode = worldSpec?.mode || currentGame?.game_config?.game_mode || 'platformer';
+  const curDim = String(worldSpec?.dimension || (String(gameMode).startsWith('2d_') ? '2d' : '3d')).toLowerCase() === '2d' ? '2d' : '3d';
   const specBadge = worldSpec?.themeId ? `${worldSpec.themeId.replaceAll('_', ' ')} • ${gameMode.replaceAll('_', ' ')}` : gameMode.replaceAll('_', ' ');
+
+  const switchDim = (next) => {
+    if (!worldSpec || curDim === next) return;
+    const to2d = { sky_shooter: '2d_space_arcade', arena_action: '2d_topdown_action', open_world_sandbox: '2d_topdown_action', vehicle_pursuit: '2d_endless_dash', endless_runner: '2d_endless_dash' };
+    const to3d = { '2d_space_arcade': 'sky_shooter', '2d_topdown_action': 'arena_action', '2d_endless_dash': 'endless_runner', '2d_platformer': 'endless_runner', '2d_grid_puzzle': 'arena_action' };
+    const nextMode = next === '2d' ? (worldSpec.mode?.startsWith('2d_') ? worldSpec.mode : (to2d[worldSpec.mode] || '2d_platformer')) : (to3d[worldSpec.mode] || 'endless_runner');
+    setWorldJson({ ...worldSpec, dimension: next, mode: nextMode, archetype: nextMode });
+  };
 
   useEffect(() => {
     const onKeyDown = (e) => { if (e.code === 'KeyR' && !['INPUT', 'TEXTAREA'].includes(e.target?.tagName)) resetRun(); };
@@ -76,6 +85,13 @@ export function GameHUD({ onBackToLobby }) {
           <button type="button" onClick={onBackToLobby} className={`inline-flex items-center gap-1.5 text-xs font-medium ${MUTED_BTN}`}><ArrowLeft className="w-3.5 h-3.5" /><span>Lobby</span></button>
           <span className={DIV_CLS} />
           <span className="text-xs font-semibold text-[#181715] dark:text-[#F1F5F9] truncate max-w-[180px]">{currentGame?.title || 'World'}</span>
+          {worldSpec && (
+            <div className="inline-flex items-center p-0.5 rounded-lg bg-[#EFECE4] dark:bg-[#182032] border border-[#E6E2D8] dark:border-[#232E42]">
+              {['3d', '2d'].map((d) => (
+                <button key={d} type="button" onClick={() => switchDim(d)} className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase transition ${curDim === d ? 'bg-[#181715] dark:bg-[#F1F5F9] text-[#F6F4EF] dark:text-[#0A0D14]' : MUTED_BTN}`}>{d}</button>
+              ))}
+            </div>
+          )}
           <span className="text-[10px] font-medium uppercase tracking-wider text-[#6E6A61] dark:text-[#94A3B8] bg-[#EFECE4] dark:bg-[#182032] border border-[#E6E2D8] dark:border-[#232E42] rounded-lg px-2 py-0.5">{specBadge}</span>
           <SynthesisStatusPill currentGame={currentGame} />
           <FpsBadge />

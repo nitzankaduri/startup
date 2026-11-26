@@ -28,25 +28,25 @@ async function request(path, options = {}) {
   return res.json();
 }
 
-export function generateGame(prompt) {
-  return request('/api/generate', { method: 'POST', body: JSON.stringify({ prompt }) });
+export function generateGame(prompt, dimension = '3d') {
+  return request('/api/games/generate', { method: 'POST', body: JSON.stringify({ prompt, dimension }) });
 }
 
-/** Streams real-time 1/3 -> 2/3 -> 3/3 Two-Stage synthesis progress via SSE, falling back to /api/generate if buffered. */
-export async function generateGameStream(prompt, onProgress) {
-  onProgress?.({ step: 1, total: 3, label: '1/3 Designing game rules & mechanics...' });
+/** Streams real-time 1/3 -> 2/3 -> 3/3 synthesis progress via SSE, falling back to /api/games/generate. */
+export async function generateGameStream(prompt, onProgress, dimension = '3d') {
+  onProgress?.({ step: 1, total: 3, label: `1/3 Designing ${dimension === '2d' ? '2D arcade' : '3D world'} rules...` });
   let res;
   try {
     res = await fetch(`${API_BASE}/api/generate-stream`, {
       method: 'POST', cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ prompt, dimension }),
     });
   } catch {
     throw new Error(`Cannot reach Spawn.gg backend (${API_BASE}). Make sure FastAPI is running on port 8000.`);
   }
   if (!res.ok) {
-    if (res.status === 404) return generateGame(prompt);
+    if (res.status === 404) return generateGame(prompt, dimension);
     throw new Error(await parseErrorDetail(res));
   }
   const ctype = res.headers.get('content-type') || '';

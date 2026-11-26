@@ -19,6 +19,7 @@ startup/
 │   ├── stream_routes.py       # POST /api/generate-stream SSE World Blueprint progress
 │   ├── world_schemas.py       # Stylized Cartoon World JSON Blueprint (`sunny_city`, `tropical_beach`, `candy_sky`, `tokyo_festival`, `desert_canyon`)
 │   ├── spatial_validator.py   # Python road/spawn anti-overlap, 3-lane passability check, curved coin arcs & 30-50 entity sanitizer
+│   ├── dimension_routing.py   # Strict 2D/3D dimension enforcement (`2d_platformer`, `2d_topdown_action`, `2d_endless_dash`, `2d_space_arcade`)
 │   ├── game_architect.py      # Fast Stylized Cartoon World Architect (<5s, Flash thinking_budget=0)
 │   ├── genre_routing.py       # Bilingual Hebrew/English intent router across 4 modes & 4 goalTypes
 │   ├── ai_service.py          # Single-pass Cartoon World synthesis & multilingual ~2s Co-Pilot JSON refinement
@@ -35,9 +36,11 @@ startup/
 └── frontend/
     ├── index.html             # Inter typography & dark matte root
     ├── scripts/
-    │   └── fetch_cartoon_assets.mjs # CC0 Kenney GLB fetcher w/ embedded colormap packing
-    ├── public/models/         # Self-contained CC0 .glb assets (sports_car, police_cruiser, subway_train, street_barrier, city_building, coin, cartoon_character, chaser_guard, tree, palm_tree, skyscraper, rock, drone, spaceship, scifi_crate)
-    ├── tailwind.config.js     # Matte dark color tokens
+    │   ├── build_studio_pack.mjs  # Verified 14-model CC0 PBR art-pack downloader & GLB texture packer (>10KB)
+    │   └── fetch_cartoon_assets.mjs # Legacy CC0 Kenney GLB fetcher w/ embedded colormap packing
+    ├── public/assets/studio/      # Self-contained CC0 studio pack (hero_stylized, enemy_guard, enemy_monster, subway_locomotive/wagon, sports_car, police_cruiser, starfighter, buildings, street_lamp, tree, gold_coin, crate_prop)
+    ├── public/models/             # Bundled CC0 .glb assets & Draco decoder
+    ├── tailwind.config.js         # Warm editorial & midnight slate design tokens
     └── src/
         ├── App.jsx            # Lobby/Live Game router + /play/:id sync
         ├── index.css          # Tailwind directives & CSS variables
@@ -56,7 +59,10 @@ startup/
         │   │   └── GameCard.jsx           # 3D WebP card, genre/score/play badges, hover Play/Remix
         │   ├── sandbox/       # React Three Fiber & Rapier 3D runtime
         │   │   ├── kernel/
-        │   │   │   ├── StudioEngineCore.js       # Clean Kenney GLB core, normalizer, PCFSoft shadows & runtime bootstrap
+        │   │   │   ├── StudioRenderPipeline.js   # ACESFilmic HDR, PMREM studio HDRI map & 2048px player-tracking shadow frustum
+        │   │   │   ├── StudioPostFX.jsx          # High-FPS EffectComposer (Bloom threshold 0.92/0.35 + SMAA + ACES Filmic)
+        │   │   │   ├── StudioAssetRegistry.js    # Studio pack manifest, static-bounds normalization (-Z, y=0) & PBR material tuning
+        │   │   │   ├── StudioEngineCore.js       # Studio GLB runtime bootstrap, normalizer & renderer configuration
         │   │   │   ├── WorldGenreDirector.js     # 5-genre world & rule generators (runner, sandbox, sky, pursuit, arena)
         │   │   │   ├── GameKernel.jsx            # High-FPS imperative R3F kernel driving all 5 GameSpec modes
         │   │   │   ├── OpenWorldBuilder.js       # 180x180 360-deg open-world street grid, blocks & AABB wall sliding
@@ -68,10 +74,10 @@ startup/
         │   │   │   ├── GameplayDirector.js       # Central entity lifecycle, boss AI, projectile & goal loop
         │   │   │   ├── DirectorSetup.js          # Mode normalization & initial entity spawning per GameSpec.mode
         │   │   │   ├── EntityMeshFactory.js      # Studio GLB model mounting w/ smooth sculpted Lathe/Extrude/Capsule fallbacks
-        │   │   │   ├── ModelAssetLoader.js       # GLTFLoader + SkeletonUtils.clone cache, Box3 normalization & y=0 grounding
+        │   │   │   ├── ModelAssetLoader.js       # Cached GLTFLoader + StudioAssetRegistry delegation
         │   │   │   ├── SculptedFallbacks.js      # Beveled ExtrudeGeometry, LatheGeometry & CapsuleGeometry sculpted fallbacks
         │   │   │   ├── EntityShadowPool.jsx      # GPU-instanced ground contact shadows beneath enemies, bosses & vehicles
-        │   │   │   ├── StudioVisualRig.jsx       # Hemisphere + warm key + back rim lighting & multi-stop gradient sky dome
+        │   │   │   ├── StudioVisualRig.jsx       # Player-tracking 2048px key sun, rim light, sky dome & StudioPostFX host
         │   │   │   └── PlayerMovementFeel.js     # Input buffering, squash-and-stretch, barrel rolls & drift lean
         │   │   ├── store/
         │   │   │   ├── useGameStore.jsx

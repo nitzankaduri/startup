@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Search, Sparkles } from 'lucide-react';
-import { detectGameGenre, GENRE_FILTERS, matchesGenreFilter, QUICK_CHIPS } from './lobbyHelpers';
+import { useSettingsStore } from '../sandbox/store/useSettingsStore';
+import { detectGameGenre, GENRE_FILTERS, matchesGenreFilter, PRESETS_2D, PRESETS_3D } from './lobbyHelpers';
 import { LobbyHero } from './LobbyHero';
 import { Navbar } from './Navbar';
 import { RecentGamesGrid } from './RecentGamesGrid';
@@ -10,8 +11,11 @@ export function LobbyPage({ theme, toggleTheme, games, isFetchingGames, isLoadin
   const [prompt, setPrompt] = useState('');
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
+  const dimension = useSettingsStore((s) => s.preferredDimension || '3d');
+  const setDimension = useSettingsStore((s) => s.setPreferredDimension);
   const promptInputRef = useRef(null);
   const worldsSectionRef = useRef(null);
+  const activePresets = dimension === '2d' ? PRESETS_2D : PRESETS_3D;
 
   const filteredGames = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -42,6 +46,8 @@ export function LobbyPage({ theme, toggleTheme, games, isFetchingGames, isLoadin
         <LobbyHero
           prompt={prompt}
           setPrompt={setPrompt}
+          dimension={dimension}
+          setDimension={setDimension}
           onGenerate={onGenerate}
           isLoading={isLoading}
           buildStage={buildStage}
@@ -52,7 +58,7 @@ export function LobbyPage({ theme, toggleTheme, games, isFetchingGames, isLoadin
 
         <div ref={worldsSectionRef} className="px-6 pt-12 pb-20 flex flex-col gap-12 border-t border-[#E6E2D8]/70 dark:border-[#1E293B]">
           <div className="max-w-6xl w-full mx-auto flex flex-wrap items-center justify-center gap-2.5">
-            {QUICK_CHIPS.map((chip) => (
+            {activePresets.map((chip) => (
               <button
                 key={chip.label}
                 type="button"
@@ -66,7 +72,7 @@ export function LobbyPage({ theme, toggleTheme, games, isFetchingGames, isLoadin
             ))}
           </div>
 
-          <ShowcaseStrip onSelectPrompt={onGenerate} />
+          <ShowcaseStrip onSelectPrompt={(p) => onGenerate(p, dimension)} />
 
           <section className="max-w-6xl w-full mx-auto flex flex-col gap-6 pt-2">
             <div className="flex flex-wrap items-center justify-between gap-4">

@@ -36,15 +36,15 @@ export function SandboxCanvas({ world }) {
       style={{ width: '100%', height: '100%' }}
       className="w-full h-full outline-none"
     >
-      <Canvas
-        dpr={1}
-        shadows="soft"
-        onCreated={({ gl }) => configureStudioShadows(gl)}
-        gl={{ preserveDrawingBuffer: true, powerPreference: 'high-performance', antialias: true, stencil: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15 }}
-        camera={{ position: [0, 4.5, 9.5], fov: 60 }}
-        style={{ width: '100%', height: '100%' }}
-        className="w-full h-full block"
-      >
+        <Canvas
+          dpr={[1, 1.5]}
+          shadows="soft"
+          onCreated={({ gl }) => configureStudioShadows(gl)}
+          gl={{ preserveDrawingBuffer: true, powerPreference: 'high-performance', antialias: false, stencil: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15 }}
+          camera={{ position: [0, 4.5, 9.5], fov: 60 }}
+          style={{ width: '100%', height: '100%' }}
+          className="w-full h-full block"
+        >
         <SubwayToonArtDirector theme={world?.theme || 'sunny_city'} mode={world?.mode || 'endless_runner'}>
           <ModeEnvironmentScene world={world} />
           <GameKernel world={world} />

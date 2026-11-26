@@ -17,9 +17,10 @@ function loadInitial() {
       cameraSensitivity: typeof raw.cameraSensitivity === 'number' ? raw.cameraSensitivity : 1.0,
       masterVolume: typeof raw.masterVolume === 'number' ? raw.masterVolume : 0.85,
       dofEnabled: typeof raw.dofEnabled === 'boolean' ? raw.dofEnabled : true,
+      preferredDimension: raw.preferredDimension === '2d' ? '2d' : '3d',
     };
   } catch {
-    return { quality: 'balanced', cameraSensitivity: 1.0, masterVolume: 0.85, dofEnabled: true };
+    return { quality: 'balanced', cameraSensitivity: 1.0, masterVolume: 0.85, dofEnabled: true, preferredDimension: '3d' };
   }
 }
 
@@ -33,6 +34,7 @@ const persist = (state) => {
       cameraSensitivity: state.cameraSensitivity,
       masterVolume: state.masterVolume,
       dofEnabled: state.dofEnabled,
+      preferredDimension: state.preferredDimension,
     }));
   } catch { /* Ignore */ }
 };
@@ -42,6 +44,7 @@ export const useSettingsStore = create((set, get) => ({
   isPaused: false,
   togglePause: () => set((s) => ({ isPaused: !s.isPaused })),
   setPaused: (isPaused) => set({ isPaused }),
+  setPreferredDimension: (dim) => { set({ preferredDimension: dim === '2d' ? '2d' : '3d' }); persist(get()); },
   setDofEnabled: (dofEnabled) => { set({ dofEnabled }); persist(get()); },
   setQuality: (quality) => {
     if (!QUALITY_PRESETS[quality]) return;

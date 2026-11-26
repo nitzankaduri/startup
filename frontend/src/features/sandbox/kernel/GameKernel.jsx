@@ -22,7 +22,7 @@ import { bindKernelKeys, createFeelState, stepPlayerFeel } from './PlayerMovemen
 import { getContactShadowTexture } from './ProceduralTextureAtlas';
 import { toggleEnterExitVehicle } from './SandboxVehicleSystem';
 import { createStudioWorldRuntime, stepStudioCamera } from './StudioEngineCore';
-import { applyHitFlash, getStudioMatcapMaterial } from './StudioShaderPool';
+import { applyHitFlash } from './StudioShaderPool';
 import { updateDynamicContactShadow } from './StudioVisualRig';
 
 const COIN_DUM = new THREE.Object3D();
@@ -53,7 +53,7 @@ export function GameKernel({ world }) {
   const playerMesh = useMemo(() => buildPlayerMesh(world?.playerType, specPal, world?.playerParts, (r) => { playerRigCtrlRef.current = r; }), [world?.playerType, world?.playerParts, specPal]);
   const shadowMap = useMemo(() => getContactShadowTexture(), []);
   const coinGeo = useMemo(() => (world?.collectibleType && world.collectibleType !== 'gold_coin' ? new THREE.OctahedronGeometry(0.44, 0) : new THREE.CylinderGeometry(0.45, 0.45, 0.14, 14)), [world?.collectibleType]);
-  const coinMat = useMemo(() => getStudioMatcapMaterial(specPal.secondary || '#FBBF24', 'toon_metallic'), [specPal.secondary]);
+  const coinMat = useMemo(() => new THREE.MeshStandardMaterial({ color: specPal.secondary || '#FBBF24', roughness: 0.18, metalness: 0.9, emissive: '#F59E0B', emissiveIntensity: 0.35 }), [specPal.secondary]);
   const bossMesh = useMemo(() => buildBossMesh(world?.bossConfig, specPal), [world?.bossConfig, specPal]);
   const obsMeshes = useMemo(() => stRef.current.obstacles.map((o, idx) => buildObstacleMesh(world?.obstacleType, specPal, world?.obstacleParts, o.isRamp, idx)), [world?.obstacleType, world?.obstacleParts, specPal, world?.mode]);
   const enemyMeshes = useMemo(() => stRef.current.enemies.map((_, idx) => buildEnemyMesh(world?.enemyType, specPal, world?.enemyParts, (r) => { enemyRigCtrlsRef.current[idx] = r; })), [world?.enemyType, world?.enemyParts, specPal, world?.mode]);
@@ -103,12 +103,12 @@ export function GameKernel({ world }) {
     if (playerRef.current) {
       playerRef.current.visible = !st.isSandbox || st.inVehicleIdx < 0;
       playerRef.current.position.set(st.px, st.py - 1.0, st.pz);
-      playerRef.current.rotation.set(st.pitch || 0, Math.PI + (st.yaw || 0), feel.bankRoll || 0);
+      playerRef.current.rotation.set(st.pitch || 0, st.yaw || 0, feel.bankRoll || 0);
       if (!isFrozen && playerRef.current.visible) { animateCharacterJoints(playerMesh, { t, speed: st.curSpeed || st.baseSpeed, grounded, sliding: feel.sliding, boosting }); animateComposedParts(playerMesh, t); }
     }
     if (shadowRef.current) { shadowRef.current.visible = !st.isSky; if (!st.isSky) updateDynamicContactShadow(shadowRef.current, st.px, st.pz, st.py, st.groundY); }
     if (bossRef.current) { bossRef.current.visible = st.boss.alive; if (st.boss.alive) { bossRef.current.position.set(st.boss.x, st.boss.y, st.boss.z); applyHitFlash(bossRef.current, st.boss.flash > 0); } }
-    for (let i = 0; i < st.enemies.length; i += 1) { const m = enemyRefs.current[i]; const e = st.enemies[i]; if (m) { m.visible = e.alive; if (e.alive) { m.position.set(e.x, e.y - 1.0, e.z); if (st.isArena || st.isSandbox) m.rotation.y = e.yaw || 0; if (!isFrozen) { stepAnimatedRig(enemyRigCtrlsRef.current[i], 'run', dtVis); animateCharacterJoints(enemyMeshes[i], { t, speed: 10, grounded: true }); } applyHitFlash(m, e.flash > 0); } } }
+    for (let i = 0; i < st.enemies.length; i += 1) { const m = enemyRefs.current[i]; const e = st.enemies[i]; if (m) { m.visible = e.alive; if (e.alive) { m.position.set(e.x, e.y - 1.0, e.z); m.rotation.y = (st.isArena || st.isSandbox) ? (e.yaw || 0) : Math.PI; if (!isFrozen) { stepAnimatedRig(enemyRigCtrlsRef.current[i], 'run', dtVis); animateCharacterJoints(enemyMeshes[i], { t, speed: 10, grounded: true }); } applyHitFlash(m, e.flash > 0); } } }
     if (coinInstRef.current) { for (let i = 0; i < st.coins.length; i += 1) { const c = st.coins[i]; COIN_DUM.position.set(c.x, c.alive ? c.y : -99, c.z); COIN_DUM.rotation.set(Math.PI / 2, t * 3.2, 0); COIN_DUM.scale.setScalar(c.alive ? 1 : 0.001); COIN_DUM.updateMatrix(); coinInstRef.current.setMatrixAt(i, COIN_DUM.matrix); } coinInstRef.current.instanceMatrix.needsUpdate = true; }
     const sync = (list, refs, rotY = 0) => { for (let i = 0; i < list.length; i += 1) { const m = refs.current[i]; const it = list[i]; if (m) { m.visible = it.alive; if (it.alive) { m.position.set(it.x, it.y, it.z); if (rotY) m.rotation.y = rotY; } } } };
     sync(st.obstacles, obsRefs); sync(st.powerups, powRefs, t * 2.4); sync(st.shots, shotRefs); sync(st.enemyShots, eShotRefs);
@@ -134,8 +134,8 @@ export function GameKernel({ world }) {
       {st.obstacles.map((_, i) => <primitive key={`o${i}`} object={obsMeshes[i]} ref={(el) => { obsRefs.current[i] = el; }} />)}
       <instancedMesh ref={coinInstRef} args={[coinGeo, coinMat, st.coins.length]} frustumCulled={false} />
       {st.powerups.map((_, i) => <primitive key={`pw${i}`} object={powMeshes[i]} ref={(el) => { powRefs.current[i] = el; }} />)}
-      {st.shots.map((_, i) => <mesh key={`s${i}`} ref={(el) => { shotRefs.current[i] = el; }} visible={false}><sphereGeometry args={[0.24, 8, 8]} /><meshBasicMaterial color={pal.projectileColor} /></mesh>)}
-      {st.enemyShots.map((_, i) => <mesh key={`es${i}`} ref={(el) => { eShotRefs.current[i] = el; }} visible={false}><sphereGeometry args={[0.28, 8, 8]} /><meshBasicMaterial color="#EF4444" /></mesh>)}
+      {st.shots.map((_, i) => <mesh key={`s${i}`} ref={(el) => { shotRefs.current[i] = el; }} visible={false}><sphereGeometry args={[0.24, 8, 8]} /><meshStandardMaterial color={pal.projectileColor} emissive={pal.projectileColor} emissiveIntensity={1.65} /></mesh>)}
+      {st.enemyShots.map((_, i) => <mesh key={`es${i}`} ref={(el) => { eShotRefs.current[i] = el; }} visible={false}><sphereGeometry args={[0.28, 8, 8]} /><meshStandardMaterial color="#EF4444" emissive="#EF4444" emissiveIntensity={1.65} /></mesh>)}
       <OpenWorldEntitiesLayer stRef={stRef} specPal={specPal} />
       <EntityShadowPool stRef={stRef} />
       <ArcadeVFXSystem boosting={Boolean(st.activePow === 'jetpack_boost' || (st.isPursuit && (st.curSpeed || 0) > st.baseSpeed * 1.4) || (st.isSandbox && st.inVehicleIdx >= 0 && Math.abs(st.curSpeed) > st.baseSpeed * 1.8))} />

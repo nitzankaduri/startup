@@ -41,7 +41,7 @@ export function createDirectorState(world) {
   const mode = gCfg.mode;
   const mech = world?.mechanics || {};
   const obstacleType = gCfg.obstacleType;
-  const isTrain = mode === 'endless_runner' && obstacleType === 'subway_train';
+  const isTrain = mode === 'endless_runner' && !['police_car', 'street_barrier', 'asteroid'].includes(obstacleType);
   const goal = initGoalState(world, mode);
   const canShoot = world?.canShoot ?? (gCfg.canShoot || mech.canShoot === true);
   const diff = Math.max(1, Number(world?.difficultyScale || 1));

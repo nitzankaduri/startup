@@ -65,6 +65,8 @@ class ArchitecturePlan(BaseModel):
 
 class GameConfig(BaseModel):
     title: str
+    dimension: Literal["3d", "2d"] = "3d"
+    mode: Optional[str] = None
     game_mode: GameMode = "platformer"
     camera_mode: CameraMode = "follow"
     controls_hint: Optional[str] = None
@@ -103,6 +105,7 @@ class ThumbnailRequest(BaseModel):
 
 class GenerateRequest(BaseModel):
     prompt: str = Field(min_length=3, max_length=500)
+    dimension: Optional[str] = "3d"
 
 
 class RemixRequest(BaseModel):

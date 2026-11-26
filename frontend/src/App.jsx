@@ -74,12 +74,12 @@ export function App() {
     return () => window.removeEventListener('popstate', syncFromUrl);
   }, [loadRecentGames, openGame, setGame, setLoading]);
 
-  const handleGenerate = async (prompt) => {
+  const handleGenerate = async (prompt, dimension = '3d') => {
     setError('');
     setLoading(true);
-    setBuildStage({ step: 1, total: 3, label: '1/3 Designing game rules & mechanics...' });
+    setBuildStage({ step: 1, total: 3, label: `1/3 Designing ${dimension === '2d' ? '2D arcade' : '3D world'} rules & mechanics...` });
     try {
-      const game = await generateGameStream(prompt, (progress) => setBuildStage(progress));
+      const game = await generateGameStream(prompt, (progress) => setBuildStage(progress), dimension);
       setBuildStage({ step: 3, total: 3, label: '3/3 Compiling & launching...' });
       openGame(game, true);
     } catch (err) {

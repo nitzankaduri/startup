@@ -4,7 +4,7 @@ export const EDITOR_PRESETS = [
     mode: 'endless_runner', goalType: 'collect_and_escape', targetCount: 25,
     playerType: 'runner_kid', obstacleType: 'subway_train', enemyType: 'chaser_guard',
     collectibleType: 'gold_coin', canShoot: false, speed: 13, objectiveText: 'Collect 25 Coins',
-    palette: { sky: '#0284C7', ground: '#4ADE80', track: '#78350F', primary: '#10B981', secondary: '#F59E0B', accent: '#E11D48' },
+    palette: { sky: '#0284C7', ground: '#CBD5E1', track: '#645A52', primary: '#10B981', secondary: '#F59E0B', accent: '#E11D48' },
   },
   {
     label: 'Space Shooter', themeId: 'space_shooter', theme: 'tokyo_festival', signLabel: 'SPACE',
@@ -36,7 +36,7 @@ export const EDITOR_PRESETS = [
   },
 ];
 
-export const MODE_OPTS = ['endless_runner', 'sky_shooter', 'vehicle_pursuit', 'arena_action', 'open_world_sandbox'];
+export const MODE_OPTS = ['endless_runner', 'sky_shooter', 'vehicle_pursuit', 'arena_action', 'open_world_sandbox', '2d_grid_puzzle', '2d_platformer', '2d_topdown_action', '2d_endless_dash', '2d_space_arcade'];
 export const GOAL_OPTS = ['collect_and_escape', 'eliminate_targets', 'survive_waves', 'distance_race', 'open_world_missions'];
 export const PLAYER_OPTS = ['runner_kid', 'starfighter', 'pirate', 'sports_car', 'knight'];
 export const OBSTACLE_OPTS = ['subway_train', 'asteroid', 'pirate_barrel', 'police_car', 'lava_pillar'];

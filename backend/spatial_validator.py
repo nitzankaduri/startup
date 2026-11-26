@@ -115,17 +115,17 @@ def sanitize_world_json(raw: Dict[str, Any], prompt: str = "") -> Dict[str, Any]
 
     fixed = _ensure_passable_lanes(fixed, layout)
     default_pm = {"arcade_car": "cartoon_car", "three_lane_runner": "cartoon_character", "flight_combat": "spaceship", "third_person_action": "cartoon_character"}[rig]
-    p_mid = str(raw.get("playerModelId") or default_pm).lower()
-    rules = dict(raw.get("rules")) if isinstance(raw.get("rules"), dict) else {}
+    p_mid, rules = str(raw.get("playerModelId") or default_pm).lower(), dict(raw.get("rules")) if isinstance(raw.get("rules"), dict) else {}
     sign = str(raw.get("signLabel") or ({"wild_west": "SALOON", "desert_canyon": "CANYON", "tropical_beach": "ALOHA", "candy_sky": "CANDY", "tokyo_festival": "TOKYO"}.get(theme, "METRO")))[:12].upper()
     extras_dict = {k: dict(raw[k]) for k in ("themeConfig", "entitySkins", "mechanics", "hudLabels", "palette", "worldPalette", "playerConfig", "enemyConfig", "worldProps", "bossConfig") if isinstance(raw.get(k), dict)}
     extras_list = {k: list(raw[k]) for k in ("playerParts", "enemyParts", "obstacleParts", "collectibleParts", "powerupsEnabled") if isinstance(raw.get(k), list)}
     mode_val = str(raw.get("mode") or raw.get("archetype") or "endless_runner")
-    mode_map = {"sky_shooter": ("open_biome", "flight_combat", "eliminate_targets"), "arena_action": ("open_biome", "third_person_action", "survive_waves"), "vehicle_pursuit": ("city_grid", "arcade_car", "distance_race"), "endless_runner": ("three_lane_track", "three_lane_runner", "collect_and_escape"), "open_world_sandbox": ("city_grid", "third_person_action", "open_world_missions")}
+    dim_val = "2d" if str(raw.get("dimension") or "").lower() == "2d" or mode_val.startswith("2d_") else "3d"
+    mode_map = {"sky_shooter": ("open_biome", "flight_combat", "eliminate_targets"), "arena_action": ("open_biome", "third_person_action", "survive_waves"), "vehicle_pursuit": ("city_grid", "arcade_car", "distance_race"), "endless_runner": ("three_lane_track", "three_lane_runner", "collect_and_escape"), "open_world_sandbox": ("city_grid", "third_person_action", "open_world_missions"), "2d_grid_puzzle": ("open_biome", "third_person_action", "collect_and_escape"), "2d_platformer": ("open_biome", "third_person_action", "collect_and_escape"), "2d_topdown_action": ("open_biome", "third_person_action", "survive_waves"), "2d_endless_dash": ("three_lane_track", "three_lane_runner", "distance_race"), "2d_space_arcade": ("open_biome", "flight_combat", "eliminate_targets")}
     layout, rig, default_goal = mode_map.get(mode_val, (layout, rig, "collect_and_escape"))
     goal_type = raw.get("goalType") if raw.get("goalType") in {"eliminate_targets", "survive_waves", "collect_and_escape", "distance_race", "open_world_missions"} else default_goal
-    return {
-        "title": str(raw.get("title") or (prompt[:38].title() if prompt else "Subway Dash World")), "theme": theme, "signLabel": sign, "lightingPreset": light, "weather": weather,
+    grav2d = float(raw.get("gravity2d") if raw.get("gravity2d") is not None else (0.0 if mode_val in ("2d_topdown_action", "2d_space_arcade", "2d_grid_puzzle") else 26.0))
+    return {"title": str(raw.get("title") or (prompt[:38].title() if prompt else "Subway Dash World")), "dimension": dim_val, "gravity2d": grav2d, "parallaxTheme": str(raw.get("parallaxTheme") or "urban_dusk"), "gridSize": max(3, min(6, int(raw.get("gridSize") or 4))), "targetTile": max(64, int(raw.get("targetTile") or 2048)), "theme": theme, "signLabel": sign, "lightingPreset": light, "weather": weather,
         "worldLayout": layout, "playerRig": rig, "playerModelId": p_mid if p_mid in VALID_MODELS else default_pm, "archetype": str(raw.get("archetype") or mode_val),
         "mode": mode_val, "themeId": str(raw.get("themeId") or "subway_trains"), "playerType": str(raw.get("playerType") or "runner_kid"),
         "obstacleType": str(raw.get("obstacleType") or "subway_train"), "enemyType": str(raw.get("enemyType") or "chaser_guard"), "collectibleType": str(raw.get("collectibleType") or "gold_coin"),
@@ -142,7 +142,7 @@ def world_json_to_game_config(world: Any, model_id: str) -> GameConfig:
     rig_to_mode = {"arcade_car": "time_trial_racer", "three_lane_runner": "arcade_runner", "flight_combat": "arena_shooter", "third_person_action": "platformer"}
     sky, fog, ground, amb = THEME_PALETTES.get(d["theme"], THEME_PALETTES["sunny_city"])
     return GameConfig(
-        title=d["title"], game_mode=rig_to_mode.get(d["playerRig"], "arcade_runner"), camera_mode="follow", world_json=world,
+        title=d["title"], dimension=d.get("dimension", "3d"), mode=d.get("mode"), game_mode=rig_to_mode.get(d["playerRig"], "arcade_runner"), camera_mode="follow", world_json=world,
         generation_source="ai_world_json", model_id=model_id, rules=GameRules(time_limit_sec=d["rules"]["timeLimit"]),
         environment=EnvironmentConfig(sky_color=sky, fog_color=fog, ground_color=ground, ambient_intensity=amb),
         player=PlayerConfig(speed=14.0 if d["playerRig"] == "arcade_car" else 11.5, rig=d["playerRig"]), goal=GoalConfig(position=[0.0, 2.0, -32.0]),

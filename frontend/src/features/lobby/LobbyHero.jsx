@@ -1,7 +1,7 @@
 import { HeroMeshBackground } from './HeroMeshBackground';
 import { PromptBar } from './PromptBar';
 
-export function LobbyHero({ prompt, setPrompt, onGenerate, isLoading, buildStage, error, onClearError, inputRef }) {
+export function LobbyHero({ prompt, setPrompt, dimension, setDimension, onGenerate, isLoading, buildStage, error, onClearError, inputRef }) {
   return (
     <section className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden px-6 pb-16">
       <HeroMeshBackground />
@@ -12,13 +12,15 @@ export function LobbyHero({ prompt, setPrompt, onGenerate, isLoading, buildStage
             Build something playable
           </h1>
           <p className="text-sm sm:text-base text-[#57534E] dark:text-[#94A3B8] max-w-lg leading-relaxed">
-            Spawn any 3D world from plain words — drive, fly, build, or fight in seconds.
+            Spawn any 3D world or 2D arcade game from plain words — jump, race, shoot, or explore in seconds.
           </p>
         </header>
 
         <PromptBar
           prompt={prompt}
           setPrompt={setPrompt}
+          dimension={dimension}
+          setDimension={setDimension}
           onGenerate={onGenerate}
           isLoading={isLoading}
           buildStage={buildStage}
